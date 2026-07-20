@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>WIL W304 — Production Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#f5f7fa;color:#0f172a;font-family:'Inter',system-ui,sans-serif;font-size:14px;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px;}
+input,select,textarea{font-family:inherit;font-size:13px;color:#0f172a;background:#fff;border:1.5px solid #e2e8f0;border-radius:7px;padding:9px 12px;width:100%;transition:border .15s;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+input[readonly]{background:#f8fafc;color:#64748b;cursor:default;}
+button{cursor:pointer;font-family:inherit;}
+table{width:100%;border-collapse:collapse;}
+th{background:#1e3a5f;color:#bfdbfe;padding:9px 12px;font-size:10px;letter-spacing:1px;text-transform:uppercase;text-align:left;white-space:nowrap;}
+td{padding:9px 12px;border-bottom:1px solid #f1f5f9;font-size:12px;}
+tr:hover td{background:#f0f7ff;}
+.card{background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,.05);}
+.btn{border:none;border-radius:7px;padding:10px 20px;color:#fff;font-weight:700;font-size:12px;letter-spacing:.5px;transition:all .15s;}
+.btn:hover{filter:brightness(1.08);transform:translateY(-1px);}
+.btn-blue{background:#1e40af;}
+.btn-green{background:#047857;}
+.btn-red{background:#dc2626;}
+.btn-purple{background:#7c3aed;}
+.btn-gray{background:#64748b;}
+.btn-orange{background:#ea580c;}
+.btn-back{background:transparent;border:1.5px solid #e2e8f0;color:#475569;border-radius:7px;padding:8px 16px;font-weight:600;font-size:12px;display:flex;align-items:center;gap:6px;}
+.btn-back:hover{background:#f1f5f9;}
+.lbl{display:block;font-size:11px;font-weight:700;color:#374151;margin-bottom:5px;letter-spacing:.5px;text-transform:uppercase;}
+.pill{border-radius:5px;padding:2px 10px;font-size:10px;font-weight:800;letter-spacing:.5px;}
+.pill-green{background:#ecfdf5;color:#047857;border:1px solid #6ee7b7;}
+.pill-orange{background:#fffbeb;color:#d97706;border:1px solid #fcd34d;}
+.pill-red{background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;}
+.pill-blue{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;}
+.nav{background:#fff;border-bottom:3px solid var(--nc,#1e40af);padding:0 16px;display:flex;align-items:center;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.07);min-height:52px;flex-wrap:wrap;gap:2px;}
+.nav-tab{background:transparent;border:none;padding:12px 12px;font-size:12px;font-weight:500;color:#475569;border-bottom:3px solid transparent;margin-bottom:-3px;transition:all .15s;white-space:nowrap;}
+.nav-tab.active{background:#f0f7ff;color:#1e40af;font-weight:700;border-bottom-color:#1e40af;}
+.nav-tab:hover:not(.active){color:#1e40af;background:#f8fbff;}
+.page{padding:20px 16px;max-width:900px;margin:0 auto;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 16px;}
+.fld{margin-bottom:14px;}
+.kpi-val{font-size:24px;font-weight:800;font-family:monospace;}
+.kpi-lbl{font-size:10px;color:#64748b;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;}
+.info-box{background:#f0f7ff;border:1.5px solid #bfdbfe;border-radius:8px;padding:12px 14px;margin-bottom:14px;}
+.warn-box{background:#fff1f2;border:1.5px solid #fca5a5;border-radius:8px;padding:10px 14px;margin-bottom:14px;}
+.success-badge{background:#ecfdf5;border:1px solid #6ee7b7;color:#047857;padding:5px 12px;border-radius:5px;font-size:12px;font-weight:700;}
+.role-card{background:#fff;border:2px solid #e2e8f0;border-radius:14px;padding:32px 36px;cursor:pointer;text-align:center;min-width:200px;box-shadow:0 4px 16px rgba(0,0,0,.06);transition:all .2s;}
+.role-card:hover{transform:translateY(-3px);box-shadow:0 10px 28px rgba(0,0,0,.12);}
+.sec-hdr{font-family:monospace;font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid currentColor;opacity:.8;}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal-box{background:#fff;border-radius:14px;padding:24px;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+@media(max-width:600px){.grid2,.grid3{grid-template-columns:1fr;}.role-card{padding:24px 20px;min-width:unset;width:100%;}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ════════════════════════════════════════════════
+// MASTER DATA
+// ════════════════════════════════════════════════
+const CODE_MAP={
+  "A":{product:"FOR ALL COMPONENTS",setting:"FOR ALL COMPONENTS"},
+  "B":{product:"MK3F Base Frame",setting:"MK3F BASE FRAME 1ST SETTING"},
+  "C":{product:"MK3F Base Frame",setting:"MK3F BASE FRAME 2ND SETTING"},
+  "D":{product:"MK4A Base Frame",setting:"MK4A BASE FRAME 1ST SETTING"},
+  "E":{product:"MK4A Base Frame",setting:"MK4A BASE FRAME 2ND SETTING"},
+  "F":{product:"MK3E Hub",setting:"MK3F HUB 1ST SETTING"},
+  "G":{product:"MK3E Hub",setting:"MK3F HUB 2ND SETTING"},
+  "H":{product:"MK4A Hub",setting:"MK4A HUB 1ST SETTING"},
+  "I":{product:"MK4A Hub",setting:"MK4A HUB 2ND SETTING"},
+  "J":{product:"MK4A Hub",setting:"MK4A HUB 3RD SETTING"},
+  "K":{product:"MK4A Main Shaft",setting:"MA4A MAIN SHAFT MILLING"},
+  "L":{product:"MK4A Main Shaft",setting:"MAIN SHAFT ROUGH TURNING"},
+  "M":{product:"MK4A Main Shaft",setting:"MAIN SHAFT FINISH TURNING"},
+  "N":{product:"MK4A MBH",setting:"MK4A MBH 1ST SETTING"},
+  "O":{product:"MK4A MBH",setting:"MK4A MBH ROUGHING SETTING"},
+  "P":{product:"MK4A MBH",setting:"MK4A MBH FINISHING SETTING"},
+  "Q":{product:"MK4A MBH",setting:"MK4A MBH 3RD SETTING"},
+  "R":{product:"ENERCON MBH",setting:"ENERCON MBH 1ST SETTING"},
+  "S":{product:"ENERCON MBH",setting:"ENERCON MBH ROUGH TURNING"},
+  "T":{product:"ENERCON MBH",setting:"ENERCON MBH FINISH TURNING"},
+  "U":{product:"ENERCON MBH",setting:"ENERCON MBH 3RD SETTING"},
+  "V":{product:"GEV Bed Plate",setting:"GEV BED PLATE 1ST SETTING"},
+  "W":{product:"GEV Bed Plate",setting:"GEV BED PLATE 2ND SETTING"},
+  "X":{product:"Chill",setting:"CHILL MILLING"},
+};
+const PLANNED_CT={"MK3F BASE FRAME 1ST SETTING":22,"MK3F BASE FRAME 2ND SETTING":13,"MK4A BASE FRAME 1ST SETTING":22,"MK4A BASE FRAME 2ND SETTING":13,"MK3F HUB 1ST SETTING":6.5,"MK3F HUB 2ND SETTING":22,"MK4A HUB 1ST SETTING":6.5,"MK4A HUB 2ND SETTING":22,"MK4A HUB 3RD SETTING":8,"MA4A MAIN SHAFT MILLING":5.5,"MAIN SHAFT ROUGH TURNING":6,"MAIN SHAFT FINISH TURNING":6,"MK4A MBH 1ST SETTING":8,"MK4A MBH ROUGHING SETTING":8,"MK4A MBH FINISHING SETTING":4,"MK4A MBH 3RD SETTING":4,"ENERCON MBH 1ST SETTING":12,"ENERCON MBH ROUGH TURNING":44,"ENERCON MBH FINISH TURNING":12,"ENERCON MBH 3RD SETTING":5,"GEV BED PLATE 1ST SETTING":40,"GEV BED PLATE 2ND SETTING":20,"CHILL MILLING":12,"FOR ALL COMPONENTS":0};
+const EMP_DETAILS=[
+  {id:"10102954",name:"VIJAYAN M",cat:"Shift Supervisor",codes:["A"]},
+  {id:"10102990",name:"INGARSAL S",cat:"Shift Supervisor",codes:["A"]},
+  {id:"10104086",name:"MUTHULINGAM A",cat:"Shift Supervisor",codes:["A"]},
+  {id:"10103303",name:"JAI KRISHNAN R",cat:"Line Supervisor",codes:["A"]},
+  {id:"10103372",name:"RANJITHKUMAR P",cat:"Line Supervisor",codes:["F","G","H","I","J","U","Q","R"]},
+  {id:"10103400",name:"PRAVEEN T",cat:"Line Supervisor",codes:["L","M","O","P","S","T"]},
+  {id:"10103622",name:"MATHIVANAN S",cat:"Line Supervisor",codes:["B","C","D","E","F","G","H","I","J"]},
+  {id:"10103668",name:"BALAMURGAN M",cat:"Line Supervisor",codes:["B","C","D","E","F","G","H","I","J","R","U"]},
+  {id:"10103999",name:"SAKTHIVEL M",cat:"Line Supervisor",codes:["F","G","H","I","J","Q"]},
+  {id:"10103955",name:"SIVA M",cat:"Line Supervisor",codes:["B","C","D","E"]},
+  {id:"10104020",name:"KARTHI A",cat:"Line Supervisor",codes:["G","I"]},
+  {id:"10103621",name:"GEORGE THALAMBATHI R",cat:"Operator",codes:["L","M"]},
+  {id:"10103651",name:"MURUGAN S",cat:"Operator",codes:["O","P","S","T"]},
+  {id:"10103753",name:"SURYA A",cat:"Operator",codes:["B","D","V","W"]},
+  {id:"10103777",name:"VIKNESH M",cat:"Operator",codes:["C","E"]},
+  {id:"10103793",name:"SASIDHARAN V",cat:"Operator",codes:["O","P","S","T"]},
+  {id:"10103821",name:"SHANMUGASUNDARAM S",cat:"Fitter",codes:[]},
+  {id:"10103830",name:"VANNI RAJ K",cat:"Operator",codes:["K","N","Q","X"]},
+  {id:"10103831",name:"KARTHICKUMAR V",cat:"Operator",codes:["L","M"]},
+  {id:"10103846",name:"MANIKANDAN G",cat:"Operator",codes:["F","H","Q","R","U"]},
+  {id:"10103847",name:"SANJAY V",cat:"Operator",codes:["B","C","D","E","F","H"]},
+  {id:"10103957",name:"ELAVARASAN A",cat:"Operator",codes:["K","N","Q","X"]},
+  {id:"10103987",name:"SANDHANA NADARAJAN M",cat:"Operator",codes:["L","M"]},
+  {id:"10103990",name:"HARIHARAN P",cat:"Operator",codes:["O","P","S","T"]},
+  {id:"10103992",name:"ABDUL MALIK A",cat:"Operator",codes:["O","P"]},
+  {id:"10103994",name:"PRABHU M",cat:"Fitter",codes:[]},
+  {id:"10104030",name:"CHIRANJEEVI M",cat:"Operator",codes:["N","X"]},
+  {id:"10104049",name:"PRABAKARAN D",cat:"Operator",codes:["L","M"]},
+  {id:"10104059",name:"SRINIVASAN R",cat:"Operator",codes:["B","C","D","E"]},
+  {id:"10104064",name:"SARATH KUMAR V",cat:"Operator",codes:["E","G"]},
+  {id:"10104065",name:"RAHMAN ALI M",cat:"Operator",codes:["K","X"]},
+  {id:"10104066",name:"KRISHNAKUMAR R",cat:"Operator",codes:["F","H"]},
+  {id:"10104067",name:"VINOTHKUMAR P",cat:"Operator",codes:["K","X"]},
+  {id:"10104069",name:"SUDHAKAR U",cat:"Operator",codes:["B","D"]},
+  {id:"10104070",name:"LOGANATHAN I",cat:"Operator",codes:["N","X"]},
+  {id:"10104082",name:"SAMUVEL JABARAJ J",cat:"Operator",codes:["N","X"]},
+  {id:"10104089",name:"SATHISH S",cat:"Operator",codes:["E","G"]},
+  {id:"10104090",name:"GOKULRAJ M",cat:"Operator",codes:["E","G"]},
+  {id:"10104096",name:"SAKTHIVEL V",cat:"Operator",codes:["B","D"]},
+  {id:"10104098",name:"PREMKUMAR L",cat:"Operator",codes:["E","G"]},
+  {id:"10104101",name:"JEEVANANTHAN R",cat:"Operator",codes:["K","X"]},
+  {id:"10104105",name:"SIVAKUMAR B",cat:"Operator",codes:["F","H"]},
+  {id:"10104110",name:"KARTHIKEYAN S",cat:"Operator",codes:["B","D"]},
+  {id:"10104119",name:"BASKAR A",cat:"Operator",codes:["F","H"]},
+  {id:"10104145",name:"SATHISH G",cat:"Operator",codes:["B","C","F","H","V","W"]},
+  {id:"10180363",name:"ANJI M",cat:"Setter",codes:[]},
+  {id:"10180436",name:"PRAKASH MANDAPATI",cat:"Operator",codes:["E","G"]},
+  {id:"10180536",name:"MUDDA RAMAKRISHNA",cat:"Operator",codes:["L","M"]},
+  {id:"10181231",name:"THUMULA SIMHACHALAM",cat:"Operator",codes:["L","M"]},
+  {id:"10181723",name:"NISHANTAH S",cat:"Operator",codes:["E","G"]},
+  {id:"10181778",name:"E SELVA GANESH",cat:"Operator",codes:["O","P"]},
+  {id:"10181779",name:"UTHAYAKUMAR G",cat:"Operator",codes:["B","D"]},
+  {id:"10181780",name:"SELVARAJ M",cat:"Operator",codes:["F","H"]},
+  {id:"10181781",name:"PONSURYA R",cat:"Operator",codes:["E","G"]},
+  {id:"10600406",name:"BALAJI P",cat:"Operator",codes:["O","P"]},
+  {id:"20155187",name:"CHEPENA KOWSHIK",cat:"Setter",codes:[]},
+  {id:"20155232",name:"MODUGU ISSAK",cat:"Setter",codes:[]},
+];
+const MACHINE_LIST=["FULL TON TECH VTL","HNK VTL","DORRIES VTL","HNK TABLE BORER-01","FERMAT TABLE BORER-02","FERMAT TABLE BORER-03","PAMA SPEEDMAT TABLE BORER-04","POREBA HTL LATHE","GEMINIS HTL LATHE","HNK FLOOR BORER-01","HNK FLOOR BORER-02","FERMAT FLOOR BORER-03","FERMAT FLOOR BORER-04","FOUR STAR FLOOR BORER-05","TOS-01 FLOOR BORER-06","TOS-02 FLOOR BORER-07","FERMAT FLOOR BORER-08","FERMAT FLOOR BORER-09","PAMA SPEEDRAM FLOOR BORER-10"];
+const MACHINE_SHORT={"FULL TON TECH VTL":"VTL-FT","HNK VTL":"VTL-HNK","DORRIES VTL":"VTL-DR","HNK TABLE BORER-01":"TB-01","FERMAT TABLE BORER-02":"TB-02","FERMAT TABLE BORER-03":"TB-03","PAMA SPEEDMAT TABLE BORER-04":"TB-04","POREBA HTL LATHE":"HTL-PO","GEMINIS HTL LATHE":"HTL-GE","HNK FLOOR BORER-01":"FB-01","HNK FLOOR BORER-02":"FB-02","FERMAT FLOOR BORER-03":"FB-03","FERMAT FLOOR BORER-04":"FB-04","FOUR STAR FLOOR BORER-05":"FB-05","TOS-01 FLOOR BORER-06":"FB-06","TOS-02 FLOOR BORER-07":"FB-07","FERMAT FLOOR BORER-08":"FB-08","FERMAT FLOOR BORER-09":"FB-09","PAMA SPEEDRAM FLOOR BORER-10":"FB-10"};
+const LOSS_CATS=["MACHINE BREAK DOWN","SETTING CHANGE OVER","TOOL/INSERT CHANGE","MINOR STOPPAGE/OPERATOR INSPECTION","REDUCED SPEED LOSS","PROCESS CORRECTION/REWORK","PREVENTIVE MAINTENANCE/MACHINE CLEANING","NO MATERIAL","NO MANPOWER","NO POWER/NO AIR","WAITING FOR CRANE","NO TOOL/NO FIXTURE/TOOL BROKEN","NEW PRODUCT/PROCESS TRIAL","ON MACHINE INSPECTION","MANUAL PRICKING/MTC","OTHERS"];
+// 24-hr shift slots
+const ALL_SHIFT_SLOTS=[];
+for(var _h=0;_h<24;_h++){var _n=(_h+1)%24;ALL_SHIFT_SLOTS.push((_h<10?'0':'')+_h+':00 - '+(_n<10?'0':'')+_n+':00');}
+const SHIFTS=["1st Shift","2nd Shift","3rd Shift"];
+
+// ════════════════════════════════════════════════
+// CLOUDFLARE STORAGE ENGINE
+// Replace WORKER_URL below with your deployed Worker URL
+// ════════════════════════════════════════════════
+var WORKER_URL = 'https://wil-production-api.wheelsindia.workers.dev'; // e.g. https://wil-w304.yourname.workers.dev
+
+var CF = {
+  load: async function(key) {
+    try {
+      var r = await fetch(WORKER_URL + '/api/data?key=' + key);
+      var j = await r.json();
+      return Array.isArray(j.data) ? j.data : [];
+    } catch(e) {
+      console.warn('CF load failed', e);
+      return [];
+    }
+  },
+  save: async function(key, data) {
+    try {
+      var r = await fetch(WORKER_URL + '/api/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: key, data: data })
+      });
+      return r.ok;
+    } catch(e) {
+      console.warn('CF save failed', e);
+      return false;
+    }
+  },
+  ping: async function() {
+    try {
+      var r = await fetch(WORKER_URL + '/api/ping');
+      return r.ok;
+    } catch(e) { return false; }
+  }
+};
+
+// Alias for compatibility
+var GH = {
+  owner: 'cloudflare', repo: 'kv', token: null,
+  loadSaved: function() { return null; },
+  clear: function() {}
+};
+
+// ════════════════════════════════════════════════
+// NOTIFICATION SETTINGS (stored in GitHub)
+// ════════════════════════════════════════════════
+// Notifications via Telegram Bot (free, no SIM needed)
+// or WhatsApp via Twilio / CallMeBot
+var NOTIF_SETTINGS={
+  telegramBotToken:'',
+  completionChatIds:'', // comma separated telegram chat IDs
+  breakdownChatIds:'',
+  wapiKey:'',          // CallMeBot WhatsApp API key
+  wapiNumbers:'',      // comma separated WhatsApp numbers
+  method:'telegram'    // 'telegram' or 'whatsapp'
+};
+
+async function sendNotification(msg,type){
+  // Load settings
+  var s=NOTIF_SETTINGS;
+  try{var res=await GH.load('notification_settings');if(res&&res.telegramBotToken!==undefined)s=res;}catch(e){}
+  var chatIds=type==='breakdown'?s.breakdownChatIds:s.completionChatIds;
+  if(!chatIds)return;
+  var ids=chatIds.split(',').map(function(x){return x.trim();}).filter(Boolean);
+  if(s.method==='telegram'&&s.telegramBotToken){
+    ids.forEach(function(chatId){
+      fetch('https://api.telegram.org/bot'+s.telegramBotToken+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,text:msg,parse_mode:'HTML'})}).catch(function(){});
+    });
+  } else if(s.method==='whatsapp'&&s.wapiKey){
+    var nums=s.wapiNumbers.split(',').map(function(x){return x.trim();}).filter(Boolean);
+    nums.forEach(function(num){
+      var url='https://api.callmebot.com/whatsapp.php?phone='+num+'&text='+encodeURIComponent(msg)+'&apikey='+s.wapiKey;
+      fetch(url).catch(function(){});
+    });
+  }
+}
+
+// ════════════════════════════════════════════════
+// LOCAL STATE
+// ════════════════════════════════════════════════
+var STATE={supEntries:[],operatorLogs:[],qualityLogs:[],ghConnected:false,cfConnected:false};
+
+async function syncLoad(){
+  if(WORKER_URL==='https://wil-production-api.wheelsindia.workers.dev')return;
+  try{
+    var e=await CF.load('supervisor_entries');
+    var o=await CF.load('operator_logs');
+    var q=await CF.load('quality_logs');
+    if(Array.isArray(e))STATE.supEntries=e;
+    if(Array.isArray(o))STATE.operatorLogs=o;
+    if(Array.isArray(q))STATE.qualityLogs=q;
+    STATE.cfConnected=true;
+    render();
+  }catch(ex){console.warn('syncLoad failed',ex);}
+}
+async function syncSave(key){
+  if(WORKER_URL==='https://wil-production-api.wheelsindia.workers.dev')return;
+  var map={supervisor_entries:STATE.supEntries,operator_logs:STATE.operatorLogs,quality_logs:STATE.qualityLogs};
+  try{await CF.save(key,map[key]);}catch(ex){console.warn('syncSave failed',ex);}
+}
+
+// ════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════
+function findEmp(id){return EMP_DETAILS.find(function(e){return e.id===id;});}
+function empLogin(id,pw){var e=findEmp(id);return(e&&pw===id)?e:null;}
+function today(){return new Date().toISOString().slice(0,10);}
+function nowTime(){var d=new Date();return (d.getHours()<10?'0':'')+d.getHours()+':'+(d.getMinutes()<10?'0':'')+d.getMinutes();}
+function uid(){return Date.now()+Math.random().toString(36).slice(2,6);}
+function getAssignedOperators(supId){
+  var sup=findEmp(supId);if(!sup)return[];
+  var supCodes=sup.codes;
+  return EMP_DETAILS.filter(function(e){
+    if(!['Operator','Fitter','Setter'].includes(e.cat))return false;
+    if(e.cat==='Fitter'||e.cat==='Setter')return true;
+    return e.codes.some(function(c){return supCodes.includes(c)||supCodes.includes('A');});
+  });
+}
+
+function buildOpts(items,valFn,lblFn,selectedFn,firstOpt){
+  var html=firstOpt?'<option value="">'+firstOpt+'</option>':'';
+  items.forEach(function(item){
+    var v=valFn(item),l=lblFn(item),sel=selectedFn(item)?' selected':'';
+    html+='<option value="'+v+'"'+sel+'>'+l+'</option>';
+  });
+  return html;
+}
+
+// ════════════════════════════════════════════════
+// APP STATE
+// ════════════════════════════════════════════════
+var APP={
+  screen:'landing',
+  currentEmp:null,
+  supTab:'starttime',
+  dashTab:'loss',
+  ghOwner:'',ghRepo:'',ghToken:'',ghErr:'',
+  notify:'',
+  viewLog:null, // for auth view modal
+  modal:null,   // 'notif_setup'
+};
+function go(screen,extra){Object.assign(APP,{screen:screen},extra||{});render();}
+function showNotify(msg,ms){APP.notify=msg;render();setTimeout(function(){APP.notify='';render();},ms||3000);}
+
+// ════════════════════════════════════════════════
+// DOM HELPERS
+// ════════════════════════════════════════════════
+function el(tag,attrs,children){
+  var e=document.createElement(tag);
+  if(attrs)Object.entries(attrs).forEach(function(kv){
+    var k=kv[0],v=kv[1];
+    if(k==='style')Object.assign(e.style,v);
+    else if(k==='className')e.className=v;
+    else if(k.startsWith('on'))e[k.toLowerCase()]=v;
+    else e.setAttribute(k,v);
+  });
+  if(children)children.forEach(function(c){if(c!=null){if(typeof c==='string')e.appendChild(document.createTextNode(c));else e.appendChild(c);}});
+  return e;
+}
+function div(a,c){return el('div',a,c);}
+function btn(label,cls,onClick,style){var b=el('button',{className:'btn '+cls,style:style||{},onclick:onClick},[label]);return b;}
+function fld(label,input){var w=div({className:'fld'});w.innerHTML='<label class="lbl">'+label+'</label>';w.appendChild(input);return w;}
+function card(style){return div({className:'card',style:style||{}});}
+function sHdr(text,color){var d=div({className:'sec-hdr',style:{color:color||'#1e40af'}});d.textContent=text;return d;}
+function pill(text,cls){return el('span',{className:'pill '+cls},[text]);}
+function backBtn(label,onClick){return el('button',{className:'btn-back',onclick:onClick},['← '+(label||'Back')]);}
+
+// ════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════
+function render(){
+  var app=document.getElementById('app');
+  app.innerHTML='';
+  // Notify toast
+  if(APP.notify){
+    var toast=div({style:{position:'fixed',top:'12px',left:'50%',transform:'translateX(-50%)',background:'#047857',color:'#fff',padding:'10px 24px',borderRadius:'8px',fontWeight:'700',fontSize:'13px',zIndex:'9999',boxShadow:'0 4px 16px rgba(0,0,0,.25)',whiteSpace:'nowrap'}});
+    toast.textContent=APP.notify;
+    app.appendChild(toast);
+  }
+  // Modal
+  if(APP.modal)app.appendChild(buildModal());
+  // Screen
+  var s=APP.screen;
+  var content;
+  if(s==='landing')content=screenLanding();
+  else if(s==='ghsetup')content=screenGHSetup();
+  else if(s==='roleselect')content=screenRoleSelect();
+  else if(s==='sup_login')content=screenLogin('Line Supervisor','#1e40af','supervisor');
+  else if(s==='op_login')content=screenLogin('Operator / Fitter / Setter','#047857','operator');
+  else if(s==='qual_login')content=screenLogin('Quality Inspector','#7c3aed','quality');
+  else if(s==='supervisor')content=screenSupervisor();
+  else if(s==='operator')content=screenOperator();
+  else if(s==='quality')content=screenQuality();
+  else if(s==='dashboards')content=screenDashboards();
+  else if(s==='notif_settings')content=screenNotifSettings();
+  else content=screenLanding();
+  app.appendChild(content);
+  afterRender();
+}
+
+// ════════════════════════════════════════════════
+// LANDING
+// ════════════════════════════════════════════════
+function screenLanding(){
+  var d=div({style:{minHeight:'100vh',background:'#fff',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 20px'}});
+  var topBar=div({style:{position:'fixed',top:'0',left:'0',right:'0',height:'4px',background:'linear-gradient(90deg,#047857,#1e40af,#7c3aed)'}});
+  d.appendChild(topBar);
+  var logo=div({style:{textAlign:'center',marginBottom:'32px'}});
+  logo.innerHTML='<div style="display:inline-flex;align-items:center;gap:12px;margin-bottom:14px"><div style="background:#1e40af;color:#fff;font-family:monospace;font-weight:800;font-size:30px;padding:10px 22px;border-radius:8px;letter-spacing:4px;box-shadow:0 4px 16px rgba(30,64,175,.3)">WIL</div><div style="font-family:monospace;font-size:18px;color:#1e40af;font-weight:800;letter-spacing:3px">W304</div></div><div style="color:#0f172a;font-size:12px;letter-spacing:4px;text-transform:uppercase;font-weight:700;margin-bottom:6px">PRODUCTION TRACKER</div><div style="color:#64748b;font-size:12px">Wheels India Limited &middot; Plant W304 &middot; Wind Turbine Components</div><div style="width:50px;height:3px;background:#1e40af;margin:14px auto 0;border-radius:2px"></div>';
+  d.appendChild(logo);
+  var ghStatus=div({style:{textAlign:'center',marginBottom:'24px'}});
+  ghStatus.innerHTML=STATE.cfConnected?'<span class="pill pill-green">&#10003; Cloud Sync Active &mdash; All devices synced via Cloudflare</span>':'<span class="pill pill-orange">&#9888; Connecting to cloud... Data saved locally until sync</span>';
+  d.appendChild(ghStatus);
+  var enterBtn=btn('🏭  Enter Production Tracker','btn-blue',function(){go('roleselect');},{width:'100%',maxWidth:'340px',padding:'16px',fontSize:'15px',borderRadius:'10px',marginBottom:'12px'});
+  var row=div({style:{display:'flex',gap:'10px',justifyContent:'center',flexWrap:'wrap',marginBottom:'12px',width:'100%',maxWidth:'340px'}});
+  var dashBtn=btn('📊  Dashboards','btn-purple',function(){checkDashAuth();},{flex:'1',padding:'13px',fontSize:'13px',borderRadius:'10px'});
+  var ghBtn=btn('⚙  Cloud Setup','btn-gray',function(){go('ghsetup');},{flex:'1',padding:'13px',fontSize:'13px',borderRadius:'10px'});
+  row.appendChild(dashBtn);row.appendChild(ghBtn);
+  var notifBtn=btn('🔔  Notifications','btn-orange',function(){go('notif_settings');},{width:'100%',maxWidth:'340px',padding:'12px',fontSize:'13px',borderRadius:'10px',marginBottom:'16px'});
+  d.appendChild(enterBtn);d.appendChild(row);d.appendChild(notifBtn);
+  var info=div({style:{maxWidth:'340px',textAlign:'center',color:'#94a3b8',fontSize:'11px',lineHeight:'1.9',background:'#f8fafc',border:'1.5px solid #e2e8f0',borderRadius:'10px',padding:'14px 16px'}});
+  info.innerHTML='<strong style="color:#374151">Login:</strong> Employee ID as both Username &amp; Password<br><strong style="color:#374151">Cloud:</strong> Data auto-syncs via Cloudflare across all devices<br><strong style="color:#374151">Offline:</strong> Works without GitHub &mdash; data stays in browser';
+  d.appendChild(info);
+  return d;
+}
+
+function checkDashAuth(){
+  // Dashboard requires WIL / Wil@1234
+  APP.dashPw='';
+  APP.modal='dash_auth';
+  render();
+}
+
+// ════════════════════════════════════════════════
+// MODALS
+// ════════════════════════════════════════════════
+function buildModal(){
+  var overlay=div({className:'modal-overlay',onclick:function(e){if(e.target===overlay){APP.modal=null;render();}}});
+  var box=div({className:'modal-box'});
+  overlay.appendChild(box);
+
+  if(APP.modal==='dash_auth'){
+    box.innerHTML='<div style="font-family:monospace;font-size:13px;font-weight:800;color:#1e3a5f;margin-bottom:20px;letter-spacing:2px">DASHBOARD LOGIN</div>';
+    var uf=div({className:'fld'});uf.innerHTML='<label class="lbl">Username</label>';var ui=el('input',{type:'text',placeholder:'WIL'});uf.appendChild(ui);box.appendChild(uf);
+    var pf=div({className:'fld'});pf.innerHTML='<label class="lbl">Password</label>';var pi=el('input',{type:'password',placeholder:'Wil@1234'});pf.appendChild(pi);box.appendChild(pf);
+    var eb=div({style:{color:'#dc2626',fontSize:'12px',marginBottom:'10px',display:'none'}});eb.id='dash-err';box.appendChild(eb);
+    var loginB=btn('VIEW DASHBOARDS','btn-purple',function(){
+      if(ui.value==='WIL'&&pi.value==='Wil@1234'){APP.modal=null;go('dashboards');}
+      else{document.getElementById('dash-err').textContent='Invalid credentials.';document.getElementById('dash-err').style.display='block';}
+    },{width:'100%',padding:'12px',marginBottom:'8px'});
+    var cancelB=btn('Cancel','btn-gray',function(){APP.modal=null;render();},{width:'100%',padding:'10px',background:'transparent',color:'#64748b',border:'1px solid #e2e8f0'});
+    box.appendChild(loginB);box.appendChild(cancelB);
+  }
+  else if(APP.modal==='view_log'&&APP.viewLog){
+    var log=APP.viewLog;
+    var op=findEmp(log.empId);
+    box.innerHTML='<div style="font-family:monospace;font-size:13px;font-weight:800;color:#1e3a5f;margin-bottom:16px;letter-spacing:2px">OPERATOR LOG ENTRY (VIEW ONLY)</div>';
+    var rows=[
+      ['Date',log.date],['Operator',op?op.name:log.empId],['Machine',MACHINE_SHORT[log.machine]||log.machine],
+      ['Product',log.product],['Setting',log.setting],['Job S.No',log.jobSno],
+      ['Shift',log.shift],['Shift Slot',log.shiftSlot],['Remarks',log.remarks||'—']
+    ];
+    var tbl=el('table',{style:{marginBottom:'14px'}});
+    rows.forEach(function(row){
+      var tr=el('tr',{});
+      tr.innerHTML='<td style="font-size:11px;color:#64748b;font-weight:700;padding:6px 8px;text-transform:uppercase;width:40%">'+row[0]+'</td><td style="font-size:13px;font-weight:600;padding:6px 8px">'+row[1]+'</td>';
+      tbl.appendChild(tr);
+    });
+    box.appendChild(tbl);
+    // Losses
+    var totalLoss=Object.values(log.losses||{}).reduce(function(a,v){return a+(v||0);},0);
+    if(totalLoss>0){
+      var lhdr=div({style:{fontFamily:'monospace',fontSize:'11px',fontWeight:'800',color:'#b91c1c',letterSpacing:'2px',textTransform:'uppercase',marginBottom:'8px',borderBottom:'1.5px solid #fca5a5',paddingBottom:'6px'}});
+      lhdr.textContent='LOSS DETAILS [Total: '+totalLoss+' mins]';box.appendChild(lhdr);
+      LOSS_CATS.forEach(function(cat){
+        var v=log.losses[cat]||0;
+        if(v>0){
+          var row2=div({style:{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:'1px solid #f8fafc',fontSize:'12px'}});
+          row2.innerHTML='<span style="color:#374151">'+cat+'</span><span style="fontFamily:monospace;fontWeight:800;color:#dc2626">'+v+' mins</span>';
+          box.appendChild(row2);
+        }
+      });
+    }
+    var closeB=btn('Close','btn-gray',function(){APP.modal=null;APP.viewLog=null;render();},{width:'100%',padding:'10px',marginTop:'14px'});
+    box.appendChild(closeB);
+  }
+  return overlay;
+}
+
+// ════════════════════════════════════════════════
+// GITHUB SETUP
+// ════════════════════════════════════════════════
+function screenGHSetup(){
+  var d=div({style:{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#f8fafc',padding:'20px'}});
+  var box=div({style:{background:'#fff',border:'1.5px solid #e2e8f0',borderRadius:'14px',padding:'32px 28px',width:'100%',maxWidth:'440px',boxShadow:'0 8px 32px rgba(0,0,0,.08)'}});
+  var hdr=div({style:{textAlign:'center',marginBottom:'24px'}});
+  hdr.innerHTML='<div style="font-size:28px;margin-bottom:8px">☁️</div><div style="font-family:monospace;font-size:13px;font-weight:800;color:#1e3a5f;letter-spacing:2px">CLOUD SETUP</div><div style="color:#64748b;font-size:12px;margin-top:4px">Connect Cloudflare Worker for real-time sync</div>';
+  box.appendChild(hdr);
+  var currentUrl=WORKER_URL==='https://wil-production-api.wheelsindia.workers.dev'?'':WORKER_URL;
+  var urlField=div({className:'fld'});urlField.innerHTML='<label class="lbl">Cloudflare Worker URL</label>';
+  var urlInp=el('input',{type:'text',value:currentUrl,placeholder:'https://wil-w304.yourname.workers.dev'});
+  urlField.appendChild(urlInp);box.appendChild(urlField);
+  var info=div({style:{background:'#f0f7ff',border:'1.5px solid #bfdbfe',borderRadius:'7px',padding:'12px',marginBottom:'14px',fontSize:'11px',color:'#1e40af',lineHeight:'1.9'}});
+  info.innerHTML='<strong>One-time setup by admin only:</strong><br>1. Deploy the <code>worker.js</code> file to Cloudflare Workers<br>2. Create a KV namespace named <code>WIL_DB</code><br>3. Bind the KV to the worker<br>4. Paste the worker URL above<br>5. Update the HTML file with this URL &amp; re-upload<br><br><strong>Once setup, no user needs to do anything!</strong><br>Everyone just opens the app URL and data syncs automatically.';
+  box.appendChild(info);
+  var testResult=div({style:{marginBottom:'12px',fontSize:'12px',display:'none'}});box.appendChild(testResult);
+  var testBtn=btn('Test Connection','btn-blue',async function(){
+    var url=urlInp.value.trim();
+    if(!url){testResult.style.display='block';testResult.style.color='#dc2626';testResult.textContent='Enter worker URL first.';return;}
+    testResult.style.display='block';testResult.style.color='#64748b';testResult.textContent='Testing...';
+    try{
+      var r=await fetch(url+'/api/ping');
+      if(r.ok){testResult.style.color='#047857';testResult.textContent='✓ Connected! Worker is responding.';}
+      else{testResult.style.color='#dc2626';testResult.textContent='✗ Worker responded with error '+r.status;}
+    }catch(ex){testResult.style.color='#dc2626';testResult.textContent='✗ Cannot reach: '+ex.message;}
+  },{width:'100%',padding:'12px',marginBottom:'8px'});
+  box.appendChild(testBtn);
+  var saveBtn=btn('Save & Apply URL','btn-green',function(){
+    var url=urlInp.value.trim();
+    if(!url){return;}
+    // Show instructions to update the HTML
+    var instructions=div({style:{background:'#f0fdf4',border:'1.5px solid #a7f3d0',borderRadius:'8px',padding:'12px',marginTop:'10px',fontSize:'11px',color:'#065f46',lineHeight:'1.8'}});
+    instructions.innerHTML='<strong>To permanently save this URL:</strong><br>1. Open <code>WIL_W304_v5.html</code> in a text editor<br>2. Find: <code>https://wil-production-api.wheelsindia.workers.dev</code><br>3. Replace with: <code>'+url+'</code><br>4. Re-upload to GitHub Pages<br>5. All users will auto-sync instantly!';
+    box.appendChild(instructions);
+    // Also save locally for this session
+    WORKER_URL=url;STATE.cfConnected=false;syncLoad();
+    showNotify('URL saved for this session. Update the HTML file to make it permanent.');
+  },{width:'100%',padding:'12px',marginBottom:'8px'});
+  box.appendChild(saveBtn);
+  box.appendChild(backBtn('Home',function(){go('landing');}));
+  d.appendChild(box);return d;
+}
+
+function screenNotifSettings(){
+  var d=div({style:{minHeight:'100vh',background:'#f5f7fa'}});
+  var nav=buildNav('NOTIFICATIONS','#ea580c','Settings',[],null,null);
+  nav.insertBefore(backBtn('Home',function(){go('landing');}),nav.firstChild);
+  d.appendChild(nav);
+  var pg=div({className:'page'});
+  pg.appendChild(sHdr('🔔 NOTIFICATION SETUP','#ea580c'));
+
+  var infoBox=div({className:'info-box',style:{marginBottom:'20px',lineHeight:'1.9',fontSize:'12px'}});
+  infoBox.innerHTML='<strong>Two free options to receive notifications:</strong><br><strong>Option 1 — Telegram (Recommended, Free, No SMS):</strong> Create a Telegram Bot, get Bot Token, add chat IDs of people to notify<br><strong>Option 2 — WhatsApp via CallMeBot (Free):</strong> Register your WhatsApp number on callmebot.com';
+  pg.appendChild(infoBox);
+
+  // Load current settings
+  var s=Object.assign({},NOTIF_SETTINGS);
+  if(STATE.ghConnected){
+    GH.load('notification_settings').then(function(res){if(res&&res.method)Object.assign(s,res);}).catch(function(){});
+  }
+
+  var c=card({padding:'20px',marginBottom:'20px'});
+  c.appendChild(sHdr('NOTIFICATION METHOD','#ea580c'));
+
+  var mf=fld('Method',(function(){
+    var sel=el('select',{});
+    sel.innerHTML='<option value="telegram"'+(s.method==='telegram'?' selected':'')+'>Telegram Bot (Recommended)</option><option value="whatsapp"'+(s.method==='whatsapp'?' selected':'')+'>WhatsApp via CallMeBot</option>';
+    sel.onchange=function(e){s.method=e.target.value;};
+    return sel;
+  }()));
+  c.appendChild(mf);
+
+  c.appendChild(sHdr('TELEGRAM SETTINGS','#1e40af'));
+  var tf=fld('Telegram Bot Token (from @BotFather)',el('input',{type:'text',value:s.telegramBotToken||'',placeholder:'123456789:AAxxxxxxxx'}));
+  tf.querySelector('input').oninput=function(e){s.telegramBotToken=e.target.value;};c.appendChild(tf);
+  var cf1=fld('Chat IDs for Product Completion (comma separated)',el('input',{type:'text',value:s.completionChatIds||'',placeholder:'123456789,987654321'}));
+  cf1.querySelector('input').oninput=function(e){s.completionChatIds=e.target.value;};c.appendChild(cf1);
+  var cf2=fld('Chat IDs for Breakdown Alerts (comma separated)',el('input',{type:'text',value:s.breakdownChatIds||'',placeholder:'123456789'}));
+  cf2.querySelector('input').oninput=function(e){s.breakdownChatIds=e.target.value;};c.appendChild(cf2);
+
+  c.appendChild(sHdr('WHATSAPP SETTINGS (CallMeBot)','#047857'));
+  var wf1=fld('CallMeBot API Key',el('input',{type:'text',value:s.wapiKey||'',placeholder:'From callmebot.com'}));
+  wf1.querySelector('input').oninput=function(e){s.wapiKey=e.target.value;};c.appendChild(wf1);
+  var wf2=fld('WhatsApp Numbers (with country code, comma separated)',el('input',{type:'text',value:s.wapiNumbers||'',placeholder:'919876543210,919123456789'}));
+  wf2.querySelector('input').oninput=function(e){s.wapiNumbers=e.target.value;};c.appendChild(wf2);
+
+  var howTo=div({style:{background:'#f0fdf4',border:'1.5px solid #a7f3d0',borderRadius:'8px',padding:'12px 14px',marginBottom:'14px',fontSize:'11px',color:'#065f46',lineHeight:'1.9'}});
+  howTo.innerHTML='<strong>How to get Telegram Chat ID:</strong><br>1. Create bot via @BotFather on Telegram &rarr; get token<br>2. Message your bot<br>3. Open: <code>https://api.telegram.org/bot{TOKEN}/getUpdates</code><br>4. Find <code>"chat":{"id":XXXXXXX}</code> &mdash; that is your Chat ID<br><br><strong>How to get CallMeBot key:</strong><br>1. Add +34 644 41 47 58 on WhatsApp<br>2. Send: <code>I allow callmebot to send me messages</code><br>3. You will receive your API key';
+  c.appendChild(howTo);
+
+  var saveBtn=btn('SAVE NOTIFICATION SETTINGS','btn-orange',async function(){
+    Object.assign(NOTIF_SETTINGS,s);
+    if(STATE.ghConnected){
+      var r=await GH.load('notification_settings');
+      await GH.save('notification_settings',s);
+    }
+    // Test
+    await sendNotification('WIL W304 Test Notification - Settings saved successfully!','completion');
+    showNotify('✓ Settings saved! Test notification sent.');
+  },{width:'100%',padding:'13px',fontSize:'14px',marginBottom:'10px'});
+  c.appendChild(saveBtn);
+  pg.appendChild(c);
+  d.appendChild(pg);
+  return d;
+}
+
+// ════════════════════════════════════════════════
+// ROLE SELECT
+// ════════════════════════════════════════════════
+function screenRoleSelect(){
+  var d=div({style:{minHeight:'100vh',background:'#f8fafc',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'24px 16px'}});
+  var topBar=div({style:{position:'fixed',top:'0',left:'0',right:'0',height:'4px',background:'linear-gradient(90deg,#047857,#1e40af,#7c3aed)'}});
+  d.appendChild(topBar);
+  var hdr=div({style:{textAlign:'center',marginBottom:'32px'}});
+  hdr.innerHTML='<div style="font-family:monospace;font-size:15px;font-weight:800;color:#1e3a5f;letter-spacing:2px;margin-bottom:6px">SELECT YOUR ROLE</div><div style="color:#64748b;font-size:12px">WIL Plant W304 &middot; Production Tracker</div>';
+  d.appendChild(hdr);
+  var roles=[
+    {key:'sup_login',icon:'👷',title:'Line Supervisor',sub:'Machine Start/End Time\nOperator Authorization',bc:'#bfdbfe',color:'#1e40af'},
+    {key:'op_login',icon:'🔧',title:'Operator / Fitter / Setter',sub:'Hourly Log Entry\nLoss Recording',bc:'#a7f3d0',color:'#047857'},
+    {key:'qual_login',icon:'✅',title:'Quality Inspector',sub:'Product Inspection\nGood / Reject Entry',bc:'#ddd6fe',color:'#7c3aed'},
+  ];
+  var cards=div({style:{display:'flex',flexDirection:'column',gap:'14px',width:'100%',maxWidth:'360px'}});
+  roles.forEach(function(r){
+    var c=div({className:'role-card',style:{'borderColor':r.bc},onclick:function(){go(r.key);}});
+    c.innerHTML='<div style="font-size:36px;margin-bottom:12px">'+r.icon+'</div><div style="font-family:monospace;font-size:13px;font-weight:800;color:'+r.color+';margin-bottom:6px">'+r.title+'</div><div style="font-size:11px;color:#64748b;line-height:1.7">'+r.sub.replace('\n','<br>')+'</div>';
+    cards.appendChild(c);
+  });
+  d.appendChild(cards);
+  var back=div({style:{marginTop:'20px'}});
+  back.appendChild(backBtn('Home',function(){go('landing');}));
+  d.appendChild(back);
+  return d;
+}
+
+// ════════════════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════════════════
+function screenLogin(roleLabel,color,nextScreen){
+  var d=div({style:{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#f8fafc',padding:'16px'}});
+  var box=div({style:{background:'#fff',border:'1.5px solid #e2e8f0',borderRadius:'14px',padding:'36px 28px',width:'100%',maxWidth:'380px',boxShadow:'0 8px 32px rgba(0,0,0,.08)'}});
+  var empId='',pw='',err='';
+  function doLogin(){
+    var emp=empLogin(empId.trim(),pw.trim());
+    if(!emp){err='Invalid ID or Password. (Password = Employee ID)';render2();return;}
+    if(nextScreen==='supervisor'&&emp.cat!=='Line Supervisor'&&emp.cat!=='Shift Supervisor'){err='Access denied: Line Supervisors only.';render2();return;}
+    if(nextScreen==='operator'&&!['Operator','Fitter','Setter'].includes(emp.cat)){err='Access denied: Operator / Fitter / Setter only.';render2();return;}
+    APP.currentEmp=emp;APP.supTab='starttime';go(nextScreen);
+  }
+  function render2(){
+    box.innerHTML='<div style="text-align:center;margin-bottom:24px"><div style="background:'+color+';color:#fff;font-family:monospace;font-weight:800;font-size:14px;padding:7px 16px;border-radius:6px;letter-spacing:2px;display:inline-block;margin-bottom:8px">'+roleLabel.toUpperCase()+'</div><div style="color:#64748b;font-size:12px">Login &middot; WIL Plant W304</div><div style="color:#94a3b8;font-size:11px;margin-top:3px">Password = Your Employee ID</div></div>';
+    var f1=div({className:'fld'});f1.innerHTML='<label class="lbl">Employee ID</label>';var i1=el('input',{type:'text',value:empId,placeholder:'e.g. 10104020'});i1.oninput=function(e){empId=e.target.value;};i1.onkeydown=function(e){if(e.key==='Enter')doLogin();};f1.appendChild(i1);box.appendChild(f1);
+    var f2=div({className:'fld'});f2.innerHTML='<label class="lbl">Password</label>';var i2=el('input',{type:'password',value:pw,placeholder:'Your Employee ID'});i2.oninput=function(e){pw=e.target.value;};i2.onkeydown=function(e){if(e.key==='Enter')doLogin();};f2.appendChild(i2);box.appendChild(f2);
+    if(err){var eb=div({style:{background:'#fff1f2',border:'1px solid #fca5a5',borderRadius:'7px',padding:'9px 12px',marginBottom:'12px',color:'#dc2626',fontSize:'12px'}});eb.textContent=err;box.appendChild(eb);}
+    box.appendChild(btn('SIGN IN  →','btn-blue',doLogin,{width:'100%',padding:'13px',fontSize:'14px',marginBottom:'10px',background:color}));
+    box.appendChild(backBtn('Select Role',function(){go('roleselect');}));
+  }
+  render2();d.appendChild(box);return d;
+}
+
+// ════════════════════════════════════════════════
+// NAV BUILDER
+// ════════════════════════════════════════════════
+function buildNav(roleLabel,color,empName,tabs,activeTab,onTab){
+  var nav=div({className:'nav',style:{'--nc':color}});
+  var brand=div({style:{display:'flex',alignItems:'center',gap:'8px',marginRight:'12px',flexShrink:'0'}});
+  brand.innerHTML='<div style="background:'+color+';color:#fff;font-family:monospace;font-weight:800;font-size:12px;padding:4px 10px;border-radius:5px;letter-spacing:2px">'+roleLabel+'</div><div style="font-family:monospace;font-size:11px;color:'+color+';font-weight:700;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+empName+'</div>';
+  nav.appendChild(brand);
+  if(tabs&&tabs.length){
+    tabs.forEach(function(t){
+      var tb=el('button',{className:'nav-tab'+(activeTab===t.k?' active':''),onclick:function(){if(onTab)onTab(t.k);render();}});
+      tb.textContent=t.l;nav.appendChild(tb);
+    });
+  }
+  var right=div({style:{marginLeft:'auto',display:'flex',gap:'8px',alignItems:'center',flexShrink:'0'}});
+  var lb=btn('Logout','btn-gray',function(){APP.currentEmp=null;go('roleselect');},{padding:'5px 12px',fontSize:'11px'});
+  right.appendChild(lb);nav.appendChild(right);
+  return nav;
+}
+
+// ════════════════════════════════════════════════
+// SUPERVISOR SCREEN
+// ════════════════════════════════════════════════
+function screenSupervisor(){
+  var emp=APP.currentEmp;
+  var d=div({});
+  var pendingCount=STATE.operatorLogs.filter(function(l){
+    return getAssignedOperators(emp.id).map(function(e){return e.id;}).includes(l.empId)&&l.approvalStatus==='PENDING';
+  }).length;
+  var tabs=[
+    {k:'starttime',l:'🚀 Start Time'},
+    {k:'endtime',l:'🏁 End Time'},
+    {k:'authorization',l:'🔐 Authorization'+(pendingCount>0?' ('+pendingCount+')':'')},
+  ];
+  var nav=buildNav('SUPERVISOR','#1e40af',emp.name,tabs,APP.supTab,function(k){APP.supTab=k;});
+  // Back to menu button
+  nav.insertBefore(backBtn('Menu',function(){go('roleselect');}),nav.firstChild);
+  d.appendChild(nav);
+  var pg=div({className:'page'});
+  if(APP.supTab==='starttime')pg.appendChild(buildSupStartTime(emp));
+  else if(APP.supTab==='endtime')pg.appendChild(buildSupEndTime(emp));
+  else if(APP.supTab==='authorization')pg.appendChild(buildSupAuth(emp));
+  d.appendChild(pg);return d;
+}
+
+function buildSupStartTime(emp){
+  var d=div({});
+  d.appendChild(sHdr('🚀 MACHINE START TIME ENTRY','#1e40af'));
+  var supCodes=emp.codes.includes('A')?Object.keys(CODE_MAP):emp.codes;
+  var form={date:today(),machine:'',code:'',product:'',setting:'',jobSno:'',startTime:nowTime()};
+  var formCard=card({padding:'20px',marginBottom:'20px'});
+  function renderForm(){
+    formCard.innerHTML='';
+    var g=div({className:'grid2'});
+    // Date
+    var df=fld('Date *',el('input',{type:'date',value:form.date}));df.querySelector('input').oninput=function(e){form.date=e.target.value;};g.appendChild(df);
+    // Machine
+    var ms=el('select',{});ms.innerHTML=buildOpts(MACHINE_LIST,function(m){return m;},function(m){return (MACHINE_SHORT[m]||m)+' - '+m;},function(m){return form.machine===m;},'-- Select Machine --');ms.onchange=function(e){form.machine=e.target.value;};
+    g.appendChild(fld('Machine *',ms));
+    // Code
+    var cs=el('select',{});cs.innerHTML=buildOpts(supCodes,function(c){return c;},function(c){var cm=CODE_MAP[c];return c+' - '+(cm?cm.setting:'All');},function(c){return form.code===c;},'-- Select Code --');
+    cs.onchange=function(e){form.code=e.target.value;if(CODE_MAP[form.code]){form.product=CODE_MAP[form.code].product;form.setting=CODE_MAP[form.code].setting;}renderForm();};
+    g.appendChild(fld('Deployment Code *',cs));
+    // Product & Setting (auto)
+    var pi=el('input',{type:'text',value:form.product});pi.readOnly=true;g.appendChild(fld('Product (Auto)',pi));
+    var si=el('input',{type:'text',value:form.setting});si.readOnly=true;g.appendChild(fld('Setting (Auto)',si));
+    // Job S.No
+    var ji=el('input',{type:'text',value:form.jobSno,placeholder:'e.g. BF-001'});ji.oninput=function(e){form.jobSno=e.target.value;};g.appendChild(fld('Job & Serial No. *',ji));
+    // Start Time
+    var ti=el('input',{type:'time',value:form.startTime});ti.oninput=function(e){form.startTime=e.target.value;};g.appendChild(fld('Start Time *',ti));
+    formCard.appendChild(g);
+    // Planned CT info
+    if(form.setting&&PLANNED_CT[form.setting]){
+      var ib=div({className:'info-box'});ib.innerHTML='<span style="font-family:monospace;font-size:11px;font-weight:700;color:#1e40af">PLANNED CYCLE TIME: </span><span style="font-family:monospace;font-size:16px;font-weight:800;color:#1e3a5f">'+PLANNED_CT[form.setting]+' hrs</span>';
+      formCard.appendChild(ib);
+    }
+    // Assigned operators for this code
+    if(form.code){
+      var ops=EMP_DETAILS.filter(function(e){return ['Operator','Fitter','Setter'].includes(e.cat)&&(e.cat==='Fitter'||e.cat==='Setter'||e.codes.includes(form.code)||emp.codes.includes('A'));});
+      if(ops.length){var ob=div({style:{background:'#f0fdf4',border:'1.5px solid #a7f3d0',borderRadius:'8px',padding:'10px 12px',marginBottom:'12px',fontSize:'11px',color:'#065f46',lineHeight:'1.7'}});ob.innerHTML='<strong>Assigned to code '+form.code+':</strong> '+ops.map(function(o){return o.name+' ('+o.cat+')';}).join(' &middot; ');formCard.appendChild(ob);}
+    }
+    formCard.appendChild(btn('SAVE START TIME  →','btn-blue',function(){
+      if(!form.machine||!form.code||!form.jobSno||!form.startTime||!form.date){alert('Fill all required fields.');return;}
+      var entry={id:uid(),supervisorId:emp.id,supervisorName:emp.name,date:form.date,machine:form.machine,code:form.code,product:form.product,setting:form.setting,jobSno:form.jobSno,startTime:form.startTime,endTime:'',status:'OPEN',plannedCT:PLANNED_CT[form.setting]||0};
+      STATE.supEntries.push(entry);syncSave('supervisor_entries');
+      form={date:today(),machine:'',code:'',product:'',setting:'',jobSno:'',startTime:nowTime()};
+      showNotify('✓ Start Time saved!');renderForm();renderTable();
+    },{width:'100%',padding:'13px',fontSize:'14px',marginTop:'12px'}));
+  }
+  renderForm();d.appendChild(formCard);
+  var tCard=card({});
+  function renderTable(){
+    tCard.innerHTML='';
+    var hdr=div({style:{padding:'11px 14px',background:'#1e3a5f',borderRadius:'10px 10px 0 0'}});
+    hdr.innerHTML='<span style="font-family:monospace;font-size:11px;color:#bfdbfe;font-weight:800;letter-spacing:2px">MY ENTRIES ('+STATE.supEntries.filter(function(e){return e.supervisorId===emp.id;}).length+')</span>';
+    tCard.appendChild(hdr);
+    var wrap=div({style:{overflowX:'auto'}});var tbl=el('table',{});
+    tbl.innerHTML='<thead><tr><th>Date</th><th>Machine</th><th>Code</th><th>Product</th><th>Job S.No</th><th>Start</th><th>End</th><th>Status</th></tr></thead>';
+    var tb=el('tbody',{});
+    var entries=[...STATE.supEntries].filter(function(e){return e.supervisorId===emp.id;}).reverse();
+    if(!entries.length){var r=el('tr',{});r.innerHTML='<td colspan="8" style="text-align:center;color:#94a3b8;padding:24px">No entries yet.</td>';tb.appendChild(r);}
+    entries.forEach(function(e,i){
+      var r=el('tr',{style:{background:i%2?'#f9fafb':'#fff'}});
+      r.innerHTML='<td style="font-family:monospace">'+e.date+'</td><td style="font-family:monospace">'+( MACHINE_SHORT[e.machine]||e.machine)+'</td><td style="font-family:monospace;font-weight:800;color:#1e40af">'+e.code+'</td><td style="font-size:11px">'+e.product+'</td><td style="font-family:monospace">'+e.jobSno+'</td><td style="font-family:monospace;color:#1e40af;font-weight:800">'+e.startTime+'</td><td style="font-family:monospace;color:#047857;font-weight:800">'+(e.endTime||'&mdash;')+'</td><td>'+(e.endTime?'<span class="pill pill-green">COMPLETED</span>':'<span class="pill pill-orange">OPEN</span>')+'</td>';
+      tb.appendChild(r);
+    });
+    tbl.appendChild(tb);wrap.appendChild(tbl);tCard.appendChild(wrap);
+  }
+  renderTable();d.appendChild(tCard);return d;
+}
+
+function buildSupEndTime(emp){
+  var d=div({});
+  d.appendChild(sHdr('🏁 MACHINE END TIME','#1e40af'));
+  var myEntries=STATE.supEntries.filter(function(e){return e.supervisorId===emp.id;});
+  var selected=null,endTime='';
+  var selCard=card({marginBottom:'16px'});
+  var endCard=card({padding:'20px'});
+  function renderSel(){
+    selCard.innerHTML='';
+    var hdr=div({style:{padding:'11px 14px',background:'#1e3a5f',borderRadius:'10px 10px 0 0'}});
+    hdr.innerHTML='<span style="font-family:monospace;font-size:11px;color:#bfdbfe;font-weight:800;letter-spacing:2px">SELECT ENTRY TO UPDATE END TIME</span>';
+    selCard.appendChild(hdr);
+    var wrap=div({style:{overflowX:'auto'}});var tbl=el('table',{});
+    tbl.innerHTML='<thead><tr><th></th><th>Date</th><th>Machine</th><th>Code</th><th>Product</th><th>Job S.No</th><th>Start</th><th>End</th><th>Status</th></tr></thead>';
+    var tb=el('tbody',{});
+    if(!myEntries.length){var r=el('tr',{});r.innerHTML='<td colspan="9" style="text-align:center;color:#94a3b8;padding:24px">No entries yet. Add from Start Time tab.</td>';tb.appendChild(r);}
+    myEntries.forEach(function(e,i){
+      var r=el('tr',{style:{background:selected&&selected.id===e.id?'#eff6ff':i%2?'#f9fafb':'#fff',cursor:e.endTime?'default':'pointer'},onclick:function(){if(!e.endTime){selected=e;endTime='';renderSel();renderEnd();}}});
+      r.innerHTML='<td>'+((!e.endTime)?'<input type="radio"'+(selected&&selected.id===e.id?' checked':'')+'style="accent-color:#1e40af">':'')+'</td><td style="font-family:monospace">'+e.date+'</td><td style="font-family:monospace">'+(MACHINE_SHORT[e.machine]||e.machine)+'</td><td style="font-family:monospace;font-weight:800;color:#1e40af">'+e.code+'</td><td style="font-size:11px">'+e.product+'</td><td style="font-family:monospace">'+e.jobSno+'</td><td style="font-family:monospace;color:#1e40af;font-weight:800">'+e.startTime+'</td><td style="font-family:monospace;color:#047857;font-weight:800">'+(e.endTime||'&mdash;')+'</td><td>'+(e.endTime?'<span class="pill pill-green">COMPLETED</span>':'<span class="pill pill-orange">OPEN</span>')+'</td>';
+      tb.appendChild(r);
+    });
+    tbl.appendChild(tb);wrap.appendChild(tbl);selCard.appendChild(wrap);
+  }
+  function renderEnd(){
+    endCard.innerHTML='';
+    if(!selected||selected.endTime){endCard.innerHTML='<div style="color:#94a3b8;text-align:center;padding:16px;font-size:13px">Select an OPEN entry above.</div>';return;}
+    var ib=div({className:'info-box'});ib.innerHTML='<strong style="color:#1e40af">'+selected.product+'</strong> &middot; '+(MACHINE_SHORT[selected.machine]||selected.machine)+' &middot; '+selected.jobSno+' &middot; Started: <strong>'+selected.startTime+'</strong>';
+    endCard.appendChild(ib);
+    var g=div({style:{display:'flex',gap:'14px',alignItems:'flex-end',flexWrap:'wrap'}});
+    var ef=fld('End Time *',el('input',{type:'time',value:endTime}));ef.querySelector('input').oninput=function(e){endTime=e.target.value;renderEnd();};g.appendChild(ef);
+    endCard.appendChild(g);
+    endCard.appendChild(btn('SAVE END TIME  ✓','btn-green',async function(){
+      if(!endTime){alert('Enter end time.');return;}
+      var idx=STATE.supEntries.findIndex(function(e){return e.id===selected.id;});
+      if(idx>=0){STATE.supEntries[idx].endTime=endTime;STATE.supEntries[idx].status='COMPLETED';}
+      await syncSave('supervisor_entries');
+      // Send completion notification
+      var entry=STATE.supEntries[idx];
+      var msg='🏁 <b>PRODUCT COMPLETED</b>\n\nProduct: '+entry.product+'\nSerial No: '+entry.jobSno+'\nMachine: '+(MACHINE_SHORT[entry.machine]||entry.machine)+'\nSupervisor: '+entry.supervisorName+'\nStart: '+entry.startTime+' | End: '+endTime+'\nDate: '+entry.date;
+      sendNotification(msg,'completion');
+      selected=null;endTime='';showNotify('✓ End Time saved! Completion notification sent.');renderSel();renderEnd();
+    },{padding:'11px 24px'}));
+  }
+  renderSel();d.appendChild(selCard);renderEnd();d.appendChild(endCard);return d;
+}
+
+function buildSupAuth(emp){
+  var d=div({});
+  d.appendChild(sHdr('🔐 OPERATOR AUTHORIZATION','#dc2626'));
+  var assignedOpIds=getAssignedOperators(emp.id).map(function(e){return e.id;});
+  var myLogs=STATE.operatorLogs.filter(function(l){return assignedOpIds.includes(l.empId);});
+  var pending=myLogs.filter(function(l){return l.approvalStatus==='PENDING';});
+  var approved=myLogs.filter(function(l){return l.approvalStatus==='APPROVED';});
+
+  function mkTable(logs,showActions,title,hdrbg){
+    var c=card({marginBottom:'16px'});
+    var hdr=div({style:{padding:'11px 14px',background:hdrbg||'#1e3a5f',borderRadius:'10px 10px 0 0'}});
+    hdr.innerHTML='<span style="font-family:monospace;font-size:11px;color:'+(hdrbg?'#fecaca':'#bfdbfe')+';font-weight:800;letter-spacing:2px">'+title+' ('+logs.length+')</span>';
+    c.appendChild(hdr);
+    var wrap=div({style:{overflowX:'auto',maxHeight:'360px',overflow:'auto'}});
+    var tbl=el('table',{});
+    tbl.innerHTML='<thead><tr><th style="position:sticky;top:0">Date</th><th style="position:sticky;top:0">Operator</th><th style="position:sticky;top:0">Machine</th><th style="position:sticky;top:0">Shift Slot</th><th style="position:sticky;top:0">Loss</th><th style="position:sticky;top:0">'+(showActions?'Action':'Status')+'</th><th style="position:sticky;top:0">View</th></tr></thead>';
+    var tb=el('tbody',{});
+    if(!logs.length){var r=el('tr',{});r.innerHTML='<td colspan="7" style="text-align:center;color:#94a3b8;padding:20px">'+(showActions?'No pending approvals':'No entries.')+'</td>';tb.appendChild(r);}
+    logs.forEach(function(l,i){
+      var op=findEmp(l.empId);
+      var totalLoss=Object.values(l.losses||{}).reduce(function(a,v){return a+(v||0);},0);
+      var r=el('tr',{style:{background:i%2?'#f9fafb':'#fff'}});
+      var actionCell=showActions
+        ?'<td><div style="display:flex;gap:6px">'
+          +'<button class="btn btn-green" style="padding:4px 10px;font-size:11px" onclick="window.supApprove(\''+l.id+'\',\'APPROVED\')">&#10003; Approve</button>'
+          +'<button class="btn btn-red" style="padding:4px 10px;font-size:11px" onclick="window.supApprove(\''+l.id+'\',\'REJECTED\')">&#10007; Reject</button>'
+          +'</div></td>'
+        :'<td><span class="pill '+(l.approvalStatus==='APPROVED'?'pill-green':'pill-red')+'">'+l.approvalStatus+'</span></td>';
+      r.innerHTML='<td style="font-family:monospace">'+l.date+'</td><td>'+(op?op.name:l.empId)+'</td><td style="font-family:monospace">'+(MACHINE_SHORT[l.machine]||l.machine)+'</td><td style="font-family:monospace">'+(l.shiftSlot||'')+'</td><td style="font-family:monospace;color:#dc2626;font-weight:800">'+totalLoss+'m</td>'+actionCell+'<td><button class="btn btn-gray" style="padding:4px 10px;font-size:11px" onclick="window.viewLog(\''+l.id+'\')">View</button></td>';
+      tb.appendChild(r);
+    });
+    tbl.appendChild(tb);wrap.appendChild(tbl);c.appendChild(wrap);
+    return c;
+  }
+  d.appendChild(mkTable(pending,true,'PENDING APPROVAL','#7f1d1d'));
+  d.appendChild(mkTable(approved,false,'APPROVED','#1e3a5f'));
+  return d;
+}
+window.supApprove=function(logId,status){
+  var idx=STATE.operatorLogs.findIndex(function(l){return l.id===logId;});
+  if(idx>=0){STATE.operatorLogs[idx].approvalStatus=status;STATE.operatorLogs[idx].approvedBy=APP.currentEmp?APP.currentEmp.name:'';STATE.operatorLogs[idx].approvedAt=new Date().toISOString();}
+  syncSave('operator_logs');
+  showNotify('Entry '+status);render();
+};
+window.viewLog=function(logId){
+  var log=STATE.operatorLogs.find(function(l){return l.id===logId;});
+  if(log){APP.viewLog=log;APP.modal='view_log';render();}
+};
+
+// ════════════════════════════════════════════════
+// OPERATOR SCREEN
+// ════════════════════════════════════════════════
+function screenOperator(){
+  var emp=APP.currentEmp;
+  var d=div({});
+  var tabs=[{k:'log',l:'📝 Log Entry'},{k:'mylog',l:'📋 My Submissions'}];
+  var nav=buildNav('OPERATOR','#047857',emp.name,tabs,APP.supTab||'log',function(k){APP.supTab=k;});
+  nav.insertBefore(backBtn('Menu',function(){go('roleselect');}),nav.firstChild);
+  d.appendChild(nav);
+  var pg=div({className:'page'});
+  if((APP.supTab||'log')==='log')pg.appendChild(buildOpLog(emp));
+  else pg.appendChild(buildOpMyLog(emp));
+  d.appendChild(pg);return d;
+}
+
+function buildOpLog(emp){
+  var d=div({});
+  d.appendChild(sHdr('🔧 HOURLY LOG ENTRY','#047857'));
+  var opCodes=emp.codes;
+  var matchedEntries=STATE.supEntries.filter(function(e){
+    if(emp.cat==='Fitter'||emp.cat==='Setter')return true;
+    return opCodes.includes(e.code)||e.code==='A';
+  });
+  var form={supEntryId:'',date:today(),shift:'1st Shift',shiftSlot:'',losses:{},remarks:''};
+  var selEntry=null;
+  var formCard=card({padding:'20px'});
+  function renderForm(){
+    formCard.innerHTML='';
+    // Emp info box
+    var empBox=div({className:'info-box',style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'10px',marginBottom:'16px'}});
+    empBox.innerHTML='<div><div class="kpi-lbl">Emp. ID</div><div style="font-family:monospace;font-weight:800;color:#047857;font-size:13px">'+emp.id+'</div></div><div><div class="kpi-lbl">Name</div><div style="font-weight:700;font-size:13px">'+emp.name+'</div></div><div><div class="kpi-lbl">Category</div><div style="font-size:12px;color:#64748b">'+emp.cat+'</div></div>';
+    formCard.appendChild(empBox);
+    formCard.appendChild(sHdr('MACHINE INFO (From Supervisor Entry)','#047857'));
+    var g=div({className:'grid2'});
+    // Supervisor entry dropdown
+    var ses=el('select',{});
+    ses.innerHTML=buildOpts(matchedEntries,function(e){return e.id;},function(e){return (MACHINE_SHORT[e.machine]||e.machine)+' | '+e.product+' | '+e.code+' | '+e.jobSno+' | '+e.startTime+(e.endTime?' DONE':' RUNNING');},function(e){return form.supEntryId===e.id;},'-- Select active entry --');
+    ses.onchange=function(ev){form.supEntryId=ev.target.value;selEntry=matchedEntries.find(function(e){return e.id===ev.target.value;})||null;renderForm();};
+    g.appendChild(fld('Select Machine Entry *',ses));
+    var di=el('input',{type:'date',value:form.date});di.oninput=function(e){form.date=e.target.value;};g.appendChild(fld('Date *',di));
+    // Auto-filled fields
+    [['Machine',selEntry?MACHINE_SHORT[selEntry.machine]||selEntry.machine:'—'],['Code',selEntry?selEntry.code:'—'],['Product',selEntry?selEntry.product:'—'],['Setting',selEntry?selEntry.setting:'—'],['Job & S.No',selEntry?selEntry.jobSno:'—'],['Product Start Time',selEntry?selEntry.startTime:'—']].forEach(function(f){
+      var inp=el('input',{type:'text',value:f[1]});inp.readOnly=true;g.appendChild(fld(f[0],inp));
+    });
+    formCard.appendChild(g);
+    formCard.appendChild(sHdr('SHIFT DETAILS','#7c3aed'));
+    var g2=div({className:'grid2'});
+    // Shift (3 options)
+    var shiftSel=el('select',{});shiftSel.innerHTML=buildOpts(SHIFTS,function(s){return s;},function(s){return s;},function(s){return form.shift===s;},'');
+    shiftSel.onchange=function(e){form.shift=e.target.value;};g2.appendChild(fld('Shift',shiftSel));
+    // Shift slot (all 24 hrs)
+    var slotSel=el('select',{});slotSel.innerHTML=buildOpts(ALL_SHIFT_SLOTS,function(s){return s;},function(s){return s;},function(s){return form.shiftSlot===s;},'-- Select 1-hr Slot --');
+    slotSel.onchange=function(e){form.shiftSlot=e.target.value;};g2.appendChild(fld('Shift Time Slot *',slotSel));
+    formCard.appendChild(g2);
+    // Loss categories only
+    var totalLoss=Object.values(form.losses).reduce(function(a,v){return a+(v||0);},0);
+    var lhdr=div({style:{fontFamily:'monospace',fontSize:'11px',fontWeight:'800',color:'#b91c1c',letterSpacing:'2px',textTransform:'uppercase',marginBottom:'10px',borderBottom:'1.5px solid #fca5a5',paddingBottom:'6px'}});
+    lhdr.innerHTML='LOSS DETAILS (mins) [Total: '+totalLoss+' mins]';
+    formCard.appendChild(lhdr);
+    var lossGrid=div({style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px 16px',marginBottom:'12px'}});
+    LOSS_CATS.forEach(function(cat){
+      var row=div({style:{display:'flex',alignItems:'center',gap:'8px',padding:'5px 0',borderBottom:'1px solid #f8fafc'}});
+      var label=div({style:{flex:'1',fontSize:'11px',fontWeight:'600',color:'#374151',lineHeight:'1.4'}});label.textContent=cat;
+      var input=el('input',{type:'number',min:'0',value:form.losses[cat]||'',placeholder:'0',style:{width:'64px',textAlign:'right',fontFamily:'monospace',fontWeight:'700'}});
+      input.oninput=function(e){
+        form.losses[cat]=parseInt(e.target.value)||0;
+        var tot=Object.values(form.losses).reduce(function(a,v){return a+(v||0);},0);
+        lhdr.innerHTML='LOSS DETAILS (mins) [Total: '+tot+' mins]';
+      };
+      row.appendChild(label);row.appendChild(input);lossGrid.appendChild(row);
+    });
+    formCard.appendChild(lossGrid);
+    var lTotal=div({className:'warn-box',style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}});
+    lTotal.innerHTML='<span style="font-family:monospace;font-size:11px;font-weight:800;color:#b91c1c">TOTAL LOSS THIS HOUR</span><span style="font-family:monospace;font-size:20px;font-weight:800;color:#dc2626">'+totalLoss+' mins</span>';
+    formCard.appendChild(lTotal);
+    var rf=fld('Remarks',el('textarea',{placeholder:'Any remarks for this hour...',rows:'2'}));
+    rf.querySelector('textarea').value=form.remarks||'';rf.querySelector('textarea').oninput=function(e){form.remarks=e.target.value;};formCard.appendChild(rf);
+    formCard.appendChild(btn('SUBMIT  → (Pending Supervisor Approval)','btn-green',async function(){
+      if(!form.supEntryId||!form.shiftSlot){alert('Select machine entry and shift slot.');return;}
+      var totalLoss2=Object.values(form.losses).reduce(function(a,v){return a+(v||0);},0);
+      var log={id:uid(),empId:emp.id,empName:emp.name,supEntryId:form.supEntryId,machine:selEntry?selEntry.machine:'',code:selEntry?selEntry.code:'',product:selEntry?selEntry.product:'',setting:selEntry?selEntry.setting:'',jobSno:selEntry?selEntry.jobSno:'',productStartTime:selEntry?selEntry.startTime:'',date:form.date,shift:form.shift,shiftSlot:form.shiftSlot,losses:Object.assign({},form.losses),totalLoss:totalLoss2,remarks:form.remarks,approvalStatus:'PENDING',timestamp:new Date().toISOString()};
+      STATE.operatorLogs.push(log);
+      await syncSave('operator_logs');
+      // Breakdown notification
+      var bdLoss=form.losses['MACHINE BREAK DOWN']||0;
+      if(bdLoss>0){
+        var bdMsg='🔴 <b>MACHINE BREAKDOWN ALERT</b>\n\nMachine: '+(MACHINE_SHORT[selEntry.machine]||selEntry.machine)+'\nSetting: '+selEntry.setting+'\nProduct: '+selEntry.product+'\nOperator: '+emp.name+'\nShift Slot: '+form.shiftSlot+'\nBreakdown Time: '+bdLoss+' mins\nDate: '+form.date;
+        sendNotification(bdMsg,'breakdown');
+      }
+      form={supEntryId:form.supEntryId,date:form.date,shift:form.shift,shiftSlot:'',losses:{},remarks:''};
+      showNotify(bdLoss>0?'✓ Submitted! Breakdown notification sent.':'✓ Submitted for supervisor approval!');
+      renderForm();
+    },{width:'100%',padding:'13px',fontSize:'14px',marginTop:'10px'}));
+  }
+  renderForm();d.appendChild(formCard);return d;
+}
+
+function buildOpMyLog(emp){
+  var d=div({});d.appendChild(sHdr('📋 MY SUBMISSIONS','#047857'));
+  var logs=[...STATE.operatorLogs].filter(function(l){return l.empId===emp.id;}).reverse();
+  var c=card({});
+  var hdr=div({style:{padding:'11px 14px',background:'#1e3a5f',borderRadius:'10px 10px 0 0'}});
+  hdr.innerHTML='<span style="font-family:monospace;font-size:11px;color:#bfdbfe;font-weight:800;letter-spacing:2px">MY LOG ENTRIES ('+logs.length+')</span>';
+  c.appendChild(hdr);
+  var wrap=div({style:{overflowX:'auto'}});var tbl=el('table',{});
+  tbl.innerHTML='<thead><tr><th>Date</th><th>Machine</th><th>Shift</th><th>Slot</th><th>Loss</th><th>Status</th></tr></thead>';
+  var tb=el('tbody',{});
+  if(!logs.length){var r=el('tr',{});r.innerHTML='<td colspan="6" style="text-align:center;color:#94a3b8;padding:24px">No submissions yet.</td>';tb.appendChild(r);}
+  logs.forEach(function(l,i){
+    var r=el('tr',{style:{background:i%2?'#f9fafb':'#fff'}});
+    r.innerHTML='<td style="font-family:monospace">'+l.date+'</td><td style="font-family:monospace">'+(MACHINE_SHORT[l.machine]||l.machine)+'</td><td>'+l.shift+'</td><td style="font-family:monospace">'+(l.shiftSlot||'')+'</td><td style="font-family:monospace;color:#dc2626;font-weight:800">'+l.totalLoss+'m</td><td><span class="pill '+(l.approvalStatus==='APPROVED'?'pill-green':l.approvalStatus==='REJECTED'?'pill-red':'pill-orange')+'">'+l.approvalStatus+'</span></td>';
+    tb.appendChild(r);
+  });
+  tbl.appendChild(tb);wrap.appendChild(tbl);c.appendChild(wrap);d.appendChild(c);return d;
+}
+
+// ════════════════════════════════════════════════
+// QUALITY SCREEN
+// ════════════════════════════════════════════════
+function screenQuality(){
+  var emp=APP.currentEmp;var d=div({});
+  var tabs=[{k:'entry',l:'✅ Entry'},{k:'log',l:'📋 Log'}];
+  var nav=buildNav('QUALITY','#7c3aed',emp.name,tabs,APP.supTab||'entry',function(k){APP.supTab=k;});
+  nav.insertBefore(backBtn('Menu',function(){go('roleselect');}),nav.firstChild);
+  d.appendChild(nav);
+  var pg=div({className:'page'});
+  if((APP.supTab||'entry')==='entry')pg.appendChild(buildQualEntry(emp));
+  else pg.appendChild(buildQualLog());
+  d.appendChild(pg);return d;
+}
+
+function buildQualEntry(emp){
+  var d=div({});d.appendChild(sHdr('✅ QUALITY ENTRY','#7c3aed'));
+  var completedEntries=STATE.supEntries.filter(function(e){return e.endTime&&e.status==='COMPLETED';});
+  var totalI=STATE.qualityLogs.reduce(function(a,l){return a+(l.inspectedQty||0);},0);
+  var totalG=STATE.qualityLogs.reduce(function(a,l){return a+(l.goodQty||0);},0);
+  var totalR=STATE.qualityLogs.reduce(function(a,l){return a+(l.rejectedQty||0);},0);
+  var qpct=totalI>0?(totalG/totalI*100).toFixed(1):0;
+  var kRow=div({style:{display:'flex',gap:'10px',flexWrap:'wrap',marginBottom:'16px'}});
+  [{l:'INSPECTED',v:totalI,c:'#1e40af'},{l:'GOOD',v:totalG,c:'#047857'},{l:'REJECTED',v:totalR,c:'#dc2626'},{l:'QUALITY %',v:qpct+'%',c:parseFloat(qpct)>=98?'#047857':parseFloat(qpct)>=95?'#d97706':'#dc2626'}].forEach(function(k){
+    var kc=card({padding:'12px 16px',flex:'1',minWidth:'80px',textAlign:'center'});kc.innerHTML='<div class="kpi-lbl">'+k.l+'</div><div class="kpi-val" style="color:'+k.c+';font-size:20px">'+k.v+'</div>';kRow.appendChild(kc);
+  });
+  d.appendChild(kRow);
+  var form={supEntryId:'',date:today(),inspectedQty:0,goodQty:0,rejectedQty:0,rejReason:'',remarks:''};var selEntry=null;
+  var fc=card({padding:'20px'});
+  function renderForm(){
+    fc.innerHTML='';
+    var ses=el('select',{});ses.innerHTML=buildOpts(completedEntries,function(e){return e.id;},function(e){return e.product+' | '+e.jobSno+' | '+(MACHINE_SHORT[e.machine]||e.machine)+' | '+e.startTime+'-'+e.endTime;},function(e){return form.supEntryId===e.id;},'-- Select completed product --');
+    ses.onchange=function(ev){form.supEntryId=ev.target.value;selEntry=completedEntries.find(function(e){return e.id===ev.target.value;})||null;renderForm();};
+    fc.appendChild(fld('Select Completed Entry *',ses));
+    var g=div({className:'grid2'});
+    var inspI=el('input',{type:'text',value:emp.id});inspI.readOnly=true;g.appendChild(fld('Inspector ID',inspI));
+    var inspN=el('input',{type:'text',value:emp.name});inspN.readOnly=true;g.appendChild(fld('Inspector Name',inspN));
+    var di=el('input',{type:'date',value:form.date});di.oninput=function(e){form.date=e.target.value;};g.appendChild(fld('Date *',di));
+    var pi=el('input',{type:'text',value:selEntry?selEntry.product:'—'});pi.readOnly=true;g.appendChild(fld('Product',pi));
+    var si=el('input',{type:'text',value:selEntry?selEntry.jobSno:'—'});si.readOnly=true;g.appendChild(fld('Product Serial No.',si));
+    var mi=el('input',{type:'text',value:selEntry?MACHINE_SHORT[selEntry.machine]||selEntry.machine:'—'});mi.readOnly=true;g.appendChild(fld('Machine',mi));
+    var qi=el('input',{type:'number',min:'0',value:form.inspectedQty});qi.oninput=function(e){form.inspectedQty=parseInt(e.target.value)||0;};g.appendChild(fld('Inspected Qty',qi));
+    var gi=el('input',{type:'number',min:'0',value:form.goodQty});gi.oninput=function(e){form.goodQty=parseInt(e.target.value)||0;};g.appendChild(fld('Good Qty',gi));
+    var ri=el('input',{type:'number',min:'0',value:form.rejectedQty});ri.oninput=function(e){form.rejectedQty=parseInt(e.target.value)||0;};g.appendChild(fld('Rejected Qty',ri));
+    var rri=el('input',{type:'text',value:form.rejReason,placeholder:'Reason if rejected'});rri.oninput=function(e){form.rejReason=e.target.value;};g.appendChild(fld('Rejection Reason',rri));
+    fc.appendChild(g);
+    var rf=fld('Remarks',el('textarea',{placeholder:'Additional remarks...',rows:'2'}));rf.querySelector('textarea').oninput=function(e){form.remarks=e.target.value;};fc.appendChild(rf);
+    fc.appendChild(btn('SUBMIT QUALITY ENTRY  →','btn-purple',function(){
+      if(!form.supEntryId||!form.date){alert('Fill required fields.');return;}
+      STATE.qualityLogs.push({id:uid(),empId:emp.id,empName:emp.name,supEntryId:form.supEntryId,machine:selEntry?selEntry.machine:'',product:selEntry?selEntry.product:'',jobSno:selEntry?selEntry.jobSno:'',setting:selEntry?selEntry.setting:'',date:form.date,inspectedQty:form.inspectedQty,goodQty:form.goodQty,rejectedQty:form.rejectedQty,rejReason:form.rejReason,remarks:form.remarks,qualPct:form.inspectedQty>0?(form.goodQty/form.inspectedQty*100).toFixed(1):0,timestamp:new Date().toISOString()});
+      syncSave('quality_logs');form={supEntryId:'',date:today(),inspectedQty:0,goodQty:0,rejectedQty:0,rejReason:'',remarks:''};selEntry=null;showNotify('✓ Quality entry saved!');renderForm();
+    },{width:'100%',padding:'13px',fontSize:'14px',marginTop:'12px',background:'#7c3aed'}));
+  }
+  renderForm();d.appendChild(fc);return d;
+}
+
+function buildQualLog(){
+  var d=div({});d.appendChild(sHdr('📋 QUALITY LOG','#7c3aed'));
+  var logs=[...STATE.qualityLogs].reverse();
+  var c=card({});
+  var hdr=div({style:{padding:'11px 14px',background:'#4c1d95',borderRadius:'10px 10px 0 0'}});
+  hdr.innerHTML='<span style="font-family:monospace;font-size:11px;color:#e9d5ff;font-weight:800;letter-spacing:2px">QUALITY LOG ('+logs.length+')</span>';
+  c.appendChild(hdr);
+  var wrap=div({style:{overflowX:'auto',maxHeight:'480px',overflow:'auto'}});var tbl=el('table',{});
+  tbl.innerHTML='<thead><tr><th>Date</th><th>Machine</th><th>Product</th><th>S.No</th><th>Inspected</th><th>Good</th><th>Rejected</th><th>Quality%</th></tr></thead>';
+  var tb=el('tbody',{});
+  if(!logs.length){var r=el('tr',{});r.innerHTML='<td colspan="8" style="text-align:center;color:#94a3b8;padding:24px">No quality entries yet.</td>';tb.appendChild(r);}
+  logs.forEach(function(l,i){var qp=l.qualPct||0;var r=el('tr',{style:{background:i%2?'#f9fafb':'#fff'}});r.innerHTML='<td style="font-family:monospace">'+l.date+'</td><td style="font-family:monospace">'+(MACHINE_SHORT[l.machine]||l.machine)+'</td><td>'+l.product+'</td><td style="font-family:monospace">'+l.jobSno+'</td><td style="font-family:monospace">'+l.inspectedQty+'</td><td style="font-family:monospace;color:#047857;font-weight:800">'+l.goodQty+'</td><td style="font-family:monospace;color:#dc2626;font-weight:800">'+l.rejectedQty+'</td><td style="font-family:monospace;font-weight:800;color:'+(parseFloat(qp)>=98?'#047857':parseFloat(qp)>=95?'#d97706':'#dc2626')+'">'+qp+'%</td>';tb.appendChild(r);});
+  tbl.appendChild(tb);wrap.appendChild(tbl);c.appendChild(wrap);d.appendChild(c);return d;
+}
+
+// ════════════════════════════════════════════════
+// DASHBOARDS
+// ════════════════════════════════════════════════
+function screenDashboards(){
+  var d=div({});
+  var tabs=[{k:'loss',l:'📉 Loss'},{k:'oee',l:'📊 OEE'},{k:'cycletime',l:'⏱ Cycle Time'}];
+  var nav=buildNav('DASHBOARDS','#047857','Analytics',tabs,APP.dashTab,function(k){APP.dashTab=k;});
+  nav.insertBefore(backBtn('Home',function(){APP.modal=null;go('landing');}),nav.firstChild);
+  d.appendChild(nav);
+  var pg=div({className:'page'});
+  if(APP.dashTab==='loss')pg.appendChild(buildLossDash());
+  else if(APP.dashTab==='oee')pg.appendChild(buildOEEDash());
+  else if(APP.dashTab==='cycletime')pg.appendChild(buildCTDash());
+  d.appendChild(pg);return d;
+}
+
+function buildLossDash(){
+  var d=div({});d.appendChild(sHdr('📉 LOSS DASHBOARD','#dc2626'));
+  var approvedLogs=STATE.operatorLogs.filter(function(l){return l.approvalStatus==='APPROVED';});
+  var machines=['ALL'].concat([...new Set(approvedLogs.map(function(l){return MACHINE_SHORT[l.machine]||l.machine;}).filter(Boolean))]);
+  var parts=['ALL'].concat([...new Set(approvedLogs.map(function(l){return l.product;}).filter(Boolean))]);
+  var filter={period:'month',date:today(),month:today().slice(0,7),year:today().slice(0,4),machine:'ALL',part:'ALL',cat:'ALL'};
+  var slicerCard=card({padding:'14px',marginBottom:'16px'});
+  var charts=card({padding:'14px',marginBottom:'16px'});
+  var mCard=card({padding:'14px',marginBottom:'16px'});
+  var tCard=card({padding:'14px'});
+  var chartInst=null;
+  function renderDash(){
+    var fLogs=approvedLogs.filter(function(l){
+      if(!l.date)return false;
+      var dOk=filter.period==='day'?l.date===filter.date:filter.period==='month'?l.date.slice(0,7)===filter.month:l.date.slice(0,4)===filter.year;
+      return dOk&&(filter.machine==='ALL'||(MACHINE_SHORT[l.machine]||l.machine)===filter.machine)&&(filter.part==='ALL'||l.product===filter.part)&&(filter.cat==='ALL'||(l.losses&&(l.losses[filter.cat]||0)>0));
+    });
+    var byCategory={};LOSS_CATS.forEach(function(c){byCategory[c]=0;});
+    fLogs.forEach(function(l){if(l.losses)Object.entries(l.losses).forEach(function(kv){if(byCategory[kv[0]]!==undefined)byCategory[kv[0]]+=(kv[1]||0);});});
+    var totalLoss=Object.values(byCategory).reduce(function(a,v){return a+v;},0);
+    var byMachine={};fLogs.forEach(function(l){var m=MACHINE_SHORT[l.machine]||l.machine||'?';if(!byMachine[m])byMachine[m]=0;byMachine[m]+=(l.totalLoss||0);});
+    // Slicers
+    slicerCard.innerHTML='<div style="font-family:monospace;font-size:10px;font-weight:800;color:#64748b;letter-spacing:2px;margin-bottom:10px">FILTERS</div>';
+    var sf=div({style:{display:'flex',gap:'8px',flexWrap:'wrap',alignItems:'center'}});
+    ['day','month','year'].forEach(function(p){var b=btn(p.toUpperCase(),'',function(){filter.period=p;renderDash();},{padding:'5px 12px',fontSize:'11px',background:filter.period===p?'#dc2626':'#f1f5f9',color:filter.period===p?'#fff':'#1e293b',border:'none',borderRadius:'6px',fontWeight:'700'});sf.appendChild(b);});
+    if(filter.period==='day'){var di=el('input',{type:'date',value:filter.date,style:{width:'auto'}});di.oninput=function(e){filter.date=e.target.value;renderDash();};sf.appendChild(di);}
+    if(filter.period==='month'){var mi=el('input',{type:'month',value:filter.month,style:{width:'auto'}});mi.oninput=function(e){filter.month=e.target.value;renderDash();};sf.appendChild(mi);}
+    if(filter.period==='year'){var yi=el('select',{style:{width:'auto'}});yi.innerHTML=buildOpts(['2024','2025','2026','2027'],function(y){return y;},function(y){return y;},function(y){return y===filter.year;});yi.onchange=function(e){filter.year=e.target.value;renderDash();};sf.appendChild(yi);}
+    var ms=el('select',{style:{width:'auto'}});ms.innerHTML=buildOpts(machines,function(m){return m;},function(m){return m;},function(m){return m===filter.machine;});ms.onchange=function(e){filter.machine=e.target.value;renderDash();};sf.appendChild(ms);
+    var ps=el('select',{style:{width:'auto',maxWidth:'140px'}});ps.innerHTML=buildOpts(parts,function(p){return p;},function(p){return p;},function(p){return p===filter.part;});ps.onchange=function(e){filter.part=e.target.value;renderDash();};sf.appendChild(ps);
+    var cs=el('select',{style:{width:'auto',maxWidth:'160px'}});cs.innerHTML='<option value="ALL">All Categories</option>'+buildOpts(LOSS_CATS,function(c){return c;},function(c){return c;},function(c){return c===filter.cat;});cs.onchange=function(e){filter.cat=e.target.value;renderDash();};sf.appendChild(cs);
+    slicerCard.appendChild(sf);
+    var kr=div({style:{display:'flex',gap:'10px',marginTop:'10px'}});
+    [{l:'TOTAL LOSS MINS',v:totalLoss,c:'#dc2626'},{l:'ENTRIES',v:fLogs.length,c:'#1e40af'},{l:'MACHINES',v:Object.keys(byMachine).length,c:'#d97706'}].forEach(function(k){var kc=card({padding:'10px 14px',flex:'1',textAlign:'center'});kc.innerHTML='<div class="kpi-lbl">'+k.l+'</div><div class="kpi-val" style="color:'+k.c+';font-size:20px">'+k.v+'</div>';kr.appendChild(kc);});
+    slicerCard.appendChild(kr);
+    // Machine bars
+    mCard.innerHTML='<div style="font-family:monospace;font-size:11px;font-weight:800;color:#b91c1c;letter-spacing:2px;margin-bottom:10px">MACHINE-WISE LOSSES</div>';
+    Object.entries(byMachine).sort(function(a,b){return b[1]-a[1];}).forEach(function(kv){var row=div({style:{display:'flex',alignItems:'center',gap:'10px',marginBottom:'7px'}});row.innerHTML='<div style="font-family:monospace;font-size:11px;font-weight:800;color:#1e3a5f;width:52px">'+kv[0]+'</div><div style="flex:1;height:8px;background:#fee2e2;border-radius:4px"><div style="width:'+( totalLoss>0?Math.min(100,kv[1]/totalLoss*100):0)+'%;height:100%;background:#dc2626;border-radius:4px"></div></div><div style="font-family:monospace;font-size:11px;font-weight:800;color:#dc2626;width:40px;text-align:right">'+kv[1]+'m</div>';mCard.appendChild(row);});
+    if(!Object.keys(byMachine).length){mCard.innerHTML+='<div style="color:#94a3b8;text-align:center;padding:16px;font-size:12px">No data</div>';}
+    // Top cats
+    tCard.innerHTML='<div style="font-family:monospace;font-size:11px;font-weight:800;color:#b91c1c;letter-spacing:2px;margin-bottom:10px">TOP LOSS CATEGORIES</div>';
+    Object.entries(byCategory).filter(function(kv){return kv[1]>0;}).sort(function(a,b){return b[1]-a[1];}).slice(0,8).forEach(function(kv){var row=div({style:{display:'flex',alignItems:'center',gap:'8px',marginBottom:'6px'}});row.innerHTML='<div style="flex:1;font-size:11px;font-weight:600;color:#374151">'+kv[0]+'</div><div style="font-family:monospace;font-size:11px;font-weight:800;color:#dc2626;min-width:36px">'+kv[1]+'m</div><div style="font-family:monospace;font-size:11px;color:#94a3b8;min-width:36px;text-align:right">'+(totalLoss>0?(kv[1]/totalLoss*100).toFixed(0):0)+'%</div>';tCard.appendChild(row);});
+    if(!Object.values(byCategory).some(function(v){return v>0;})){tCard.innerHTML+='<div style="color:#94a3b8;text-align:center;padding:16px;font-size:12px">No loss data</div>';}
+    // Chart
+    charts.innerHTML='<div style="font-family:monospace;font-size:11px;font-weight:800;color:#b91c1c;letter-spacing:2px;margin-bottom:10px">LOSS CHART &mdash; Bar + % Line</div><div style="height:280px"><canvas id="lossChart"></canvas></div>';
+    setTimeout(function(){
+      var canvas=document.getElementById('lossChart');if(!canvas)return;
+      if(chartInst)chartInst.destroy();
+      var cats=Object.keys(byCategory).filter(function(k){return byCategory[k]>0;});
+      if(!cats.length)return;
+      chartInst=new Chart(canvas,{type:'bar',data:{labels:cats.map(function(c){return c.length>16?c.slice(0,16)+'...':c;}),datasets:[{type:'bar',label:'Loss (mins)',data:cats.map(function(k){return byCategory[k];}),backgroundColor:'rgba(220,38,38,.7)',yAxisID:'y'},{type:'line',label:'% of Total',data:cats.map(function(k){return totalLoss>0?(byCategory[k]/totalLoss*100).toFixed(1):0;}),borderColor:'#ea580c',fill:false,yAxisID:'y2',tension:.3,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:11}}}},scales:{y:{title:{display:true,text:'Loss (mins)'},beginAtZero:true},y2:{position:'right',beginAtZero:true,max:100,grid:{drawOnChartArea:false}}}}});
+    },60);
+  }
+  renderDash();
+  d.appendChild(slicerCard);
+  var g=div({style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px',marginBottom:'14px'}});g.appendChild(mCard);g.appendChild(tCard);d.appendChild(g);d.appendChild(charts);return d;
+}
+
+function buildOEEDash(){
+  var d=div({});d.appendChild(sHdr('📊 OEE DASHBOARD','#ea580c'));
+  var approvedLogs=STATE.operatorLogs.filter(function(l){return l.approvalStatus==='APPROVED';});
+  var machines=['ALL'].concat([...new Set(approvedLogs.map(function(l){return MACHINE_SHORT[l.machine]||l.machine;}).filter(Boolean))]);
+  var filter={period:'month',month:today().slice(0,7),year:today().slice(0,4),machine:'ALL'};
+  var SCHED=1440,BD_CATS=['MACHINE BREAK DOWN','PREVENTIVE MAINTENANCE/MACHINE CLEANING'],NM_CATS=['NO MATERIAL'];
+  function calcOEE(logs){
+    if(!logs.length)return{oee:0,avail:0,perf:0,qual:0,good:0,rejected:0};
+    var md=new Set(logs.map(function(l){return l.date+'__'+l.machine;})).size;
+    var ts=md*SCHED;
+    var bdL=logs.reduce(function(a,l){var s=0;BD_CATS.forEach(function(c){s+=(l.losses?l.losses[c]||0:0);});return a+s;},0);
+    var avail=ts>0?Math.min(100,Math.max(0,(ts-bdL)/ts*100)):0;
+    var tact=logs.reduce(function(a,l){return a+(l.actCT||60);},0);
+    var exl=logs.reduce(function(a,l){var s=0;BD_CATS.concat(NM_CATS).forEach(function(c){s+=(l.losses?l.losses[c]||0:0);});return a+s;},0);
+    var run=Math.max(1,tact-exl);var pl=logs.length*60;
+    var perf=Math.min(100,Math.max(0,pl/run*100));
+    var relQ=STATE.qualityLogs.filter(function(q){
+      var dOk=filter.period==='month'?q.date&&q.date.slice(0,7)===filter.month:q.date&&q.date.slice(0,4)===filter.year;
+      var mOk=filter.machine==='ALL'||new Set(logs.map(function(l){return l.machine;})).has(q.machine);
+      return dOk&&mOk;
+    });
+    var good=relQ.reduce(function(a,q){return a+(q.goodQty||0);},0);var tot=relQ.reduce(function(a,q){return a+(q.inspectedQty||0);},0);
+    var qual=tot>0?Math.min(100,good/tot*100):95;
+    return{oee:+((avail/100)*(perf/100)*(qual/100)*100).toFixed(1),avail:+avail.toFixed(1),perf:+perf.toFixed(1),qual:+qual.toFixed(1),good:good,rejected:tot-good};
+  }
+  var kRow=div({style:{display:'flex',gap:'10px',flexWrap:'wrap',marginBottom:'14px'}});
+  var fCard=card({padding:'12px',marginBottom:'14px'});
+  var mCard=card({padding:'14px',marginBottom:'14px'});
+  var tCard=card({padding:'14px'});
+  var barInst=null,lineInst=null;
+  function kpiC(v,g,w){return v>=(g||85)?'#047857':v>=(w||70)?'#d97706':'#dc2626';}
+  function renderOEE(){
+    var fLogs=approvedLogs.filter(function(l){if(!l.date)return false;var dOk=filter.period==='month'?l.date.slice(0,7)===filter.month:l.date.slice(0,4)===filter.year;return dOk&&(filter.machine==='ALL'||(MACHINE_SHORT[l.machine]||l.machine)===filter.machine);});
+    var ov=calcOEE(fLogs);
+    fCard.innerHTML='';
+    var sf=div({style:{display:'flex',gap:'8px',flexWrap:'wrap',alignItems:'center'}});
+    ['month','year'].forEach(function(p){var b=btn(p==='month'?'MONTH':'YEAR','',function(){filter.period=p;renderOEE();},{padding:'5px 12px',fontSize:'11px',background:filter.period===p?'#ea580c':'#f1f5f9',color:filter.period===p?'#fff':'#1e293b',border:'none',borderRadius:'6px',fontWeight:'700'});sf.appendChild(b);});
+    if(filter.period==='month'){var mi=el('input',{type:'month',value:filter.month,style:{width:'auto'}});mi.oninput=function(e){filter.month=e.target.value;renderOEE();};sf.appendChild(mi);}
+    if(filter.period==='year'){var yi=el('select',{style:{width:'auto'}});yi.innerHTML=buildOpts(['2024','2025','2026','2027'],function(y){return y;},function(y){return y;},function(y){return y===filter.year;});yi.onchange=function(e){filter.year=e.target.value;renderOEE();};sf.appendChild(yi);}
+    var ms=el('select',{style:{width:'auto'}});ms.innerHTML=buildOpts(machines,function(m){return m;},function(m){return m;},function(m){return m===filter.machine;});ms.onchange=function(e){filter.machine=e.target.value;renderOEE();};sf.appendChild(ms);
+    fCard.appendChild(sf);
+    kRow.innerHTML='';
+    [{l:'OEE',v:ov.oee+'%',c:kpiC(ov.oee)},{l:'AVAILABILITY',v:ov.avail+'%',c:kpiC(ov.avail)},{l:'PERFORMANCE',v:ov.perf+'%',c:kpiC(ov.perf)},{l:'QUALITY',v:ov.qual+'%',c:kpiC(ov.qual,98,95)},{l:'GOOD',v:ov.good,c:'#1e40af'},{l:'REJECTED',v:ov.rejected,c:'#dc2626'}].forEach(function(k){var kc=card({padding:'10px 12px',flex:'1',minWidth:'80px',textAlign:'center'});kc.innerHTML='<div class="kpi-lbl">'+k.l+'</div><div class="kpi-val" style="color:'+k.c+';font-size:18px">'+k.v+'</div>';kRow.appendChild(kc);});
+    var mData=machines.filter(function(m){return m!=='ALL';}).map(function(m){var ml=fLogs.filter(function(l){return (MACHINE_SHORT[l.machine]||l.machine)===m;});return Object.assign({machine:m,entries:ml.length},calcOEE(ml));}).filter(function(m){return m.entries>0;});
+    mCard.innerHTML='<div style="font-family:monospace;font-size:11px;font-weight:800;color:#ea580c;letter-spacing:2px;margin-bottom:10px">MACHINE-WISE OEE</div>';
+    if(mData.length){
+      var tbl=el('table',{style:{marginBottom:'14px'}});tbl.innerHTML='<thead><tr><th>Machine</th><th>OEE%</th><th>Avail%</th><th>Perf%</th><th>Quality%</th></tr></thead>';
+      var tb=el('tbody',{});mData.forEach(function(m,i){var r=el('tr',{style:{background:i%2?'#f9fafb':'#fff'}});r.innerHTML='<td style="font-family:monospace;font-weight:800">'+m.machine+'</td><td style="font-family:monospace;color:'+kpiC(m.oee)+';font-weight:800">'+m.oee+'%</td><td style="font-family:monospace;color:'+kpiC(m.avail)+'">'+m.avail+'%</td><td style="font-family:monospace;color:'+kpiC(m.perf)+'">'+m.perf+'%</td><td style="font-family:monospace;color:'+kpiC(m.qual,98,95)+'">'+m.qual+'%</td>';tb.appendChild(r);});tbl.appendChild(tb);mCard.appendChild(tbl);
+      mCard.appendChild(el('div',{style:{height:'220px'}},[el('canvas',{id:'oeeBar'})]));
+      setTimeout(function(){var c=document.getElementById('oeeBar');if(!c)return;if(barInst)barInst.destroy();barInst=new Chart(c,{type:'bar',data:{labels:mData.map(function(m){return m.machine;}),datasets:[{label:'OEE%',data:mData.map(function(m){return m.oee;}),backgroundColor:'rgba(234,88,12,.75)'},{label:'Avail%',data:mData.map(function(m){return m.avail;}),backgroundColor:'rgba(30,64,175,.7)'},{label:'Perf%',data:mData.map(function(m){return m.perf;}),backgroundColor:'rgba(4,120,87,.7)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:10}}}},scales:{y:{min:0,max:100}}}});},60);
+    } else {mCard.innerHTML+='<div style="color:#94a3b8;text-align:center;padding:16px;font-size:12px">No data</div>';}
+    var dw=Array.from({length:31},function(_,i){var day=i+1;var dl=fLogs.filter(function(l){return l.date&&parseInt(l.date.slice(8,10))===day;});return Object.assign({day:day},calcOEE(dl));}).filter(function(d){return d.oee>0||d.avail>0;});
+    tCard.innerHTML='<div style="font-family:monospace;font-size:11px;font-weight:800;color:#ea580c;letter-spacing:2px;margin-bottom:10px">DAY-WISE OEE TREND</div><div style="height:240px"><canvas id="oeeLineChart"></canvas></div>';
+    setTimeout(function(){var c=document.getElementById('oeeLineChart');if(!c)return;if(lineInst)lineInst.destroy();if(!dw.length)return;lineInst=new Chart(c,{type:'line',data:{labels:dw.map(function(d){return 'D'+d.day;}),datasets:[{label:'OEE%',data:dw.map(function(d){return d.oee;}),borderColor:'#ea580c',tension:.3,fill:false,pointRadius:3},{label:'Avail%',data:dw.map(function(d){return d.avail;}),borderColor:'#1e40af',tension:.3,fill:false,pointRadius:3},{label:'Perf%',data:dw.map(function(d){return d.perf;}),borderColor:'#047857',tension:.3,fill:false,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:10}}}},scales:{y:{min:0,max:100}}}});},80);
+  }
+  renderOEE();d.appendChild(fCard);d.appendChild(kRow);d.appendChild(mCard);d.appendChild(tCard);return d;
+}
+
+function buildCTDash(){
+  var d=div({});d.appendChild(sHdr('⏱ CYCLE TIME DASHBOARD','#047857'));
+  var approvedLogs=STATE.operatorLogs.filter(function(l){return l.approvalStatus==='APPROVED';});
+  var machines=['ALL'].concat([...new Set(approvedLogs.map(function(l){return MACHINE_SHORT[l.machine]||l.machine;}).filter(Boolean))]);
+  var filter={period:'month',month:today().slice(0,7),machine:'ALL'};
+  var fCard=card({padding:'12px',marginBottom:'14px'});
+  var tCard=card({marginBottom:'14px'});
+  var cCard=card({padding:'14px'});
+  var ctInst=null;
+  function renderCT(){
+    var fLogs=approvedLogs.filter(function(l){if(!l.date)return false;var dOk=filter.period==='month'?l.date.slice(0,7)===filter.month:true;return dOk&&(filter.machine==='ALL'||(MACHINE_SHORT[l.machine]||l.machine)===filter.machine);});
+    fCard.innerHTML='';
+    var sf=div({style:{display:'flex',gap:'8px',flexWrap:'wrap',alignItems:'center'}});
+    ['month','all'].forEach(function(p){var b=btn(p==='all'?'ALL TIME':'MONTH','',function(){filter.period=p;renderCT();},{padding:'5px 12px',fontSize:'11px',background:filter.period===p?'#047857':'#f1f5f9',color:filter.period===p?'#fff':'#1e293b',border:'none',borderRadius:'6px',fontWeight:'700'});sf.appendChild(b);});
+    if(filter.period==='month'){var mi=el('input',{type:'month',value:filter.month,style:{width:'auto'}});mi.oninput=function(e){filter.month=e.target.value;renderCT();};sf.appendChild(mi);}
+    var ms=el('select',{style:{width:'auto'}});ms.innerHTML=buildOpts(machines,function(m){return m;},function(m){return m;},function(m){return m===filter.machine;});ms.onchange=function(e){filter.machine=e.target.value;renderCT();};sf.appendChild(ms);
+    fCard.appendChild(sf);
+    var byProd={};fLogs.forEach(function(l){var p=l.product||'?';if(!byProd[p])byProd[p]={losses:[],entries:0,setting:l.setting||''};byProd[p].losses.push(l.totalLoss||0);byProd[p].entries++;});
+    var avg=function(arr){return arr.length?+(arr.reduce(function(a,v){return a+v;},0)/arr.length).toFixed(0):null;};
+    var rows=Object.entries(byProd).map(function(kv){return{product:kv[0],avgLoss:avg(kv[1].losses),entries:kv[1].entries,setting:kv[1].setting};});
+    tCard.innerHTML='';var hdr=div({style:{padding:'11px 14px',background:'#1e3a5f',borderRadius:'10px 10px 0 0'}});hdr.innerHTML='<span style="font-family:monospace;font-size:11px;color:#bfdbfe;font-weight:800;letter-spacing:2px">PRODUCT SUMMARY</span>';tCard.appendChild(hdr);
+    var wrap=div({style:{overflowX:'auto'}});var tbl=el('table',{});tbl.innerHTML='<thead><tr><th>Product</th><th>Setting</th><th>Entries</th><th>Avg Loss/hr</th></tr></thead>';
+    var tb=el('tbody',{});if(!rows.length){var r=el('tr',{});r.innerHTML='<td colspan="4" style="text-align:center;color:#94a3b8;padding:20px">No approved data.</td>';tb.appendChild(r);}
+    rows.forEach(function(r,i){var tr=el('tr',{style:{background:i%2?'#f9fafb':'#fff'}});tr.innerHTML='<td style="font-weight:700">'+r.product+'</td><td style="font-size:11px;color:#64748b">'+r.setting+'</td><td style="font-family:monospace">'+r.entries+'</td><td style="font-family:monospace;color:#dc2626;font-weight:800">'+(r.avgLoss!==null?r.avgLoss+' m':'--')+'</td>';tb.appendChild(tr);});
+    tbl.appendChild(tb);wrap.appendChild(tbl);tCard.appendChild(wrap);
+    cCard.innerHTML='<div style="font-family:monospace;font-size:11px;font-weight:800;color:#047857;letter-spacing:2px;margin-bottom:10px">PRODUCT LOSS CHART</div><div style="height:250px"><canvas id="ctChart"></canvas></div>';
+    setTimeout(function(){var c=document.getElementById('ctChart');if(!c)return;if(ctInst)ctInst.destroy();var sorted=rows.filter(function(r){return r.avgLoss!==null;}).sort(function(a,b){return b.avgLoss-a.avgLoss;});if(!sorted.length)return;ctInst=new Chart(c,{type:'bar',data:{labels:sorted.map(function(r){return r.product.length>14?r.product.slice(0,14)+'...':r.product;}),datasets:[{label:'Avg Loss per Hour (mins)',data:sorted.map(function(r){return r.avgLoss;}),backgroundColor:'rgba(220,38,38,.7)',borderColor:'#dc2626',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:11}}}},scales:{y:{title:{display:true,text:'Minutes'},beginAtZero:true}}}});},60);
+  }
+  renderCT();d.appendChild(fCard);d.appendChild(tCard);d.appendChild(cCard);return d;
+}
+
+function afterRender(){}
+
+// ════════════════════════════════════════════════
+// BOOT — Auto-restore GitHub
+// ════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',function(){
+  render();
+  // Connect to Cloudflare worker
+  var workerUrl='https://wil-production-api.wheelsindia.workers.dev';
+  fetch(workerUrl+'/api/ping',{method:'GET',mode:'cors'})
+    .then(function(r){
+      if(r.ok){
+        STATE.cfConnected=true;
+        render();
+        return Promise.all([
+          fetch(workerUrl+'/api/data?key=supervisor_entries',{mode:'cors'}).then(function(r){return r.json();}),
+          fetch(workerUrl+'/api/data?key=operator_logs',{mode:'cors'}).then(function(r){return r.json();}),
+          fetch(workerUrl+'/api/data?key=quality_logs',{mode:'cors'}).then(function(r){return r.json();})
+        ]);
+      }
+    })
+    .then(function(results){
+      if(!results)return;
+      if(results[0]&&Array.isArray(results[0].data))STATE.supEntries=results[0].data;
+      if(results[1]&&Array.isArray(results[1].data))STATE.operatorLogs=results[1].data;
+      if(results[2]&&Array.isArray(results[2].data))STATE.qualityLogs=results[2].data;
+      render();
+    })
+    .catch(function(e){
+      console.warn('CF failed:',e);
+      STATE.cfConnected=false;
+      render();
+    });
+});
+</script>
+</body>
+</html>
